@@ -246,6 +246,32 @@
         }
         let _lastSnap = '';
         let _rendered = [];
+        const CACHE_KEY = 'wallet_notifs_cache_v1';
+
+        function renderList(list) {
+            const section = document.getElementById('notif-section');
+            if (!section) return;
+            if (!list.length) { section.innerHTML = emptyMarkup(); return; }
+            const today = list.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });
+            const older = list.filter(function (n) { return today.indexOf(n) === -1; });
+            let html = '';
+            if (today.length) { html += '<div class="notif-date-group">Baru</div>' + today.map(itemMarkup).join(''); }
+            if (older.length) { html += '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' + older.map(itemMarkup).join(''); }
+            section.innerHTML = html;
+        }
+
+        function renderCached() {
+            if (!getWalletAddr()) { renderEmpty(); return; }
+            try {
+                const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+                if (c && typeof c.snap === 'string') {
+                    _lastSnap = c.snap;
+                    _rendered = c.items || [];
+                    renderList(_rendered);
+                    return;
+                }
+            } catch (e) {}
+        }
 
         function fmtTime(d) {
             if (!d) return 'Baru saja';
@@ -296,16 +322,8 @@
                 _rendered = notifs.map(function (n) {
                     return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
                 });
-                if (_rendered.length === 0) {
-                    section.innerHTML = emptyMarkup();
-                    return;
-                }
-                const today = _rendered.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });
-                const older = _rendered.filter(function (n) { return today.indexOf(n) === -1; });
-                let html = '';
-                if (today.length) { html += '<div class="notif-date-group">Baru</div>' + today.map(itemMarkup).join(''); }
-                if (older.length) { html += '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' + older.map(itemMarkup).join(''); }
-                section.innerHTML = html;
+                renderList(_rendered);
+                try { localStorage.setItem(CACHE_KEY, JSON.stringify({ snap: snap, items: _rendered })); } catch (e) {}
             } catch (e) { if (!_rendered.length) renderEmpty(); }
         }
 
@@ -322,6 +340,7 @@
             }
         }
 
+        renderCached();
         pullNotifs();
         setInterval(function () { if (!document.hidden) pullNotifs(); }, 5000);
         document.addEventListener('visibilitychange', function () { if (!document.hidden) pullNotifs(); });
