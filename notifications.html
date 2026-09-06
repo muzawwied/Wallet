@@ -215,56 +215,106 @@
             <span class="scanner-title">Notifikasi</span>
         </div>
 
-        <div class="notif-section">
-            
-            <div class="notif-date-group">Baru</div>
-
-            <div class="notif-item unread" onclick="markAsRead(this)">
-                <div class="notif-content">
-                    <span class="notif-title">Cashback 50% Menantimu! 🎉</span>
-                    <span class="notif-desc">Lakukan transaksi pertamamu hari ini dan dapatkan cashback instan hingga 500.000. S&K berlaku.</span>
-                    <span class="notif-time">2 jam yang lalu</span>
-                </div>
-            </div>
-
-            <div class="notif-item unread" onclick="markAsRead(this)">
-                <div class="notif-content">
-                    <span class="notif-title">Login Baru Terdeteksi</span>
-                    <span class="notif-desc">Akunmu baru saja diakses dari perangkat baru di Jakarta. Abaikan jika ini kamu.</span>
-                    <span class="notif-time">5 jam yang lalu</span>
-                </div>
-            </div>
-
-            <div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>
-
-            <div class="notif-item">
-                <div class="notif-content">
-                    <span class="notif-title">Transfer Berhasil Terselesaikan</span>
-                    <span class="notif-desc">Pengiriman 1.500.000 ke 0x98f7...a1b2 telah berhasil dikonfirmasi.</span>
-                    <span class="notif-time">Kemarin, 14:30</span>
-                </div>
-            </div>
-
-            <div class="notif-item">
-                <div class="notif-content">
-                    <span class="notif-title">Pembaruan Sistem Selesai</span>
-                    <span class="notif-desc">Sistem telah diperbarui ke versi terbaru. Nikmati transaksi yang lebih cepat dan aman!</span>
-                    <span class="notif-time">2 Hari yang lalu</span>
-                </div>
-            </div>
-
-        </div>
+        <div class="notif-section" id="notif-section"></div>
     </div>
 
     <script>
+        const CLINCOO_API = 'https://clincoo-be2.pages.dev/api/wallet-sync';
+        let syncKey = '';
+        try { syncKey = localStorage.getItem('clincoo_wallet_key') || ''; } catch (e) {}
+        let _lastSnap = '';
+        let _rendered = [];
+
+        function fmtTime(d) {
+            if (!d) return 'Baru saja';
+            const dt = new Date(d.replace(' ', 'T') + 'Z');
+            const now = new Date();
+            const diffMs = now - dt;
+            if (diffMs < 60 * 60 * 1000) return Math.max(1, Math.floor(diffMs / 60000)) + ' menit yang lalu';
+            if (diffMs < 24 * 60 * 60 * 1000) return Math.floor(diffMs / 3600000) + ' jam yang lalu';
+            const sameDay = dt.toDateString() === now.toDateString();
+            const yest = new Date(now); yest.setDate(now.getDate() - 1);
+            const t = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            if (sameDay) return 'Hari ini, ' + t;
+            if (dt.toDateString() === yest.toDateString()) return 'Kemarin, ' + t;
+            return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + t;
+        }
+
+        function itemMarkup(n) {
+            return '<div class="notif-item' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '" onclick="markAsRead(this)">' +
+                '<div class="notif-content">' +
+                '<span class="notif-title">' + (n.title || '') + '</span>' +
+                '<span class="notif-desc">' + (n.desc || '') + '</span>' +
+                '<span class="notif-time">' + (n.time || '') + '</span>' +
+                '</div></div>';
+        }
+
+        function renderDemo() {
+            const section = document.getElementById('notif-section');
+            let readSet = [];
+            try { readSet = JSON.parse(localStorage.getItem('wallet_notif_read') || '[]'); } catch (e) {}
+            _rendered = [
+                { id: 'd1', title: 'Cashback 50% Menantimu! 🎉', desc: 'Lakukan transaksi pertamamu hari ini dan dapatkan cashback instan hingga 500.000. S&K berlaku.', time: '2 jam yang lalu' },
+                { id: 'd2', title: 'Login Baru Terdeteksi', desc: 'Akunmu baru saja diakses dari perangkat baru di Jakarta. Abaikan jika ini kamu.', time: '5 jam yang lalu' },
+                { id: 'd3', title: 'Transfer Berhasil Terselesaikan', desc: 'Pengiriman 1.500.000 ke 0x98f7...a1b2 telah berhasil dikonfirmasi.', time: 'Kemarin, 14:30' },
+                { id: 'd4', title: 'Pembaruan Sistem Selesai', desc: 'Sistem telah diperbarui ke versi terbaru. Nikmati transaksi yang lebih cepat dan aman!', time: '2 Hari yang lalu' }
+            ].map(function (n) { n.read = readSet.indexOf(n.id) !== -1; return n; });
+            section.innerHTML =
+                '<div class="notif-date-group">Baru</div>' +
+                itemMarkup(_rendered[0]) + itemMarkup(_rendered[1]) +
+                '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' +
+                itemMarkup(_rendered[2]) + itemMarkup(_rendered[3]);
+        }
+
+        async function pullNotifs() {
+            const section = document.getElementById('notif-section');
+            try {
+                const res = await fetch(CLINCOO_API + '?action=external_pull&api_key=' + encodeURIComponent(syncKey));
+                if (!res.ok) { if (!_rendered.length) renderDemo(); return; }
+                const d = await res.json();
+                const notifs = (d.data && d.data.notifications) || [];
+                const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; }));
+                if (snap === _lastSnap) return;
+                _lastSnap = snap;
+                _rendered = notifs.map(function (n) {
+                    return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
+                });
+                if (_rendered.length === 0) {
+                    section.innerHTML = '<div class="notif-date-group">Baru</div><div class="notif-item"><div class="notif-content"><span class="notif-title">Belum ada notifikasi</span><span class="notif-desc">Notifikasi Clincoo akan muncul di sini secara real-time.</span><span class="notif-time">Baru saja</span></div></div>';
+                    return;
+                }
+                const today = _rendered.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });
+                const older = _rendered.filter(function (n) { return today.indexOf(n) === -1; });
+                let html = '';
+                if (today.length) { html += '<div class="notif-date-group">Baru</div>' + today.map(itemMarkup).join(''); }
+                if (older.length) { html += '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' + older.map(itemMarkup).join(''); }
+                section.innerHTML = html;
+            } catch (e) { if (!_rendered.length) renderDemo(); }
+        }
+
         function markAsRead(element) {
             if (element.classList.contains('unread')) {
                 element.classList.remove('unread');
                 element.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    element.style.transform = 'scale(1)';
-                }, 150);
+                setTimeout(() => { element.style.transform = 'scale(1)'; }, 150);
+                const nid = element.getAttribute('data-id');
+                if (syncKey && nid && nid.indexOf('d') !== 0) {
+                    fetch(CLINCOO_API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'external_read', api_key: syncKey, id: parseInt(nid, 10) }) }).catch(function () {});
+                } else if (nid) {
+                    let readSet = [];
+                    try { readSet = JSON.parse(localStorage.getItem('wallet_notif_read') || '[]'); } catch (e) {}
+                    if (readSet.indexOf(nid) === -1) { readSet.push(nid); try { localStorage.setItem('wallet_notif_read', JSON.stringify(readSet)); } catch (e) {} }
+                }
             }
+        }
+
+        if (syncKey) {
+            pullNotifs();
+            setInterval(function () { if (!document.hidden) pullNotifs(); }, 5000);
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) pullNotifs(); });
+        } else {
+            renderDemo();
         }
     </script>
 </body>
