@@ -272,13 +272,15 @@
             return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + t;
         }
 
-        function emptyMarkup() {
+        function emptyMarkup(connected) {
             return '<div class="notif-empty">' +
                 '<div class="notif-empty-icon">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' +
                 '</div>' +
-                '<span class="notif-empty-title">Belum Ada Notifikasi</span>' +
-                '<span class="notif-empty-desc">Notifikasi Clincoo akan muncul di sini secara real-time.</span>' +
+                '<span class="notif-empty-title">' + (connected ? 'Belum Ada Notifikasi' : 'Notifikasi Belum Tersambung') + '</span>' +
+                '<span class="notif-empty-desc">' + (connected
+                    ? 'Notifikasi Clincoo akan muncul di sini secara real-time.'
+                    : 'Hubungkan wallet ke Clincoo lewat halaman Riwayat untuk melihat notifikasi real-time.') + '</span>' +
                 '</div>';
         }
 
@@ -291,28 +293,15 @@
                 '</div></div>';
         }
 
-        function renderDemo() {
-            const section = document.getElementById('notif-section');
-            let readSet = [];
-            try { readSet = JSON.parse(localStorage.getItem('wallet_notif_read') || '[]'); } catch (e) {}
-            _rendered = [
-                { id: 'd1', title: 'Cashback 50% Menantimu! 🎉', desc: 'Lakukan transaksi pertamamu hari ini dan dapatkan cashback instan hingga 500.000. S&K berlaku.', time: '2 jam yang lalu' },
-                { id: 'd2', title: 'Login Baru Terdeteksi', desc: 'Akunmu baru saja diakses dari perangkat baru di Jakarta. Abaikan jika ini kamu.', time: '5 jam yang lalu' },
-                { id: 'd3', title: 'Transfer Berhasil Terselesaikan', desc: 'Pengiriman 1.500.000 ke 0x98f7...a1b2 telah berhasil dikonfirmasi.', time: 'Kemarin, 14:30' },
-                { id: 'd4', title: 'Pembaruan Sistem Selesai', desc: 'Sistem telah diperbarui ke versi terbaru. Nikmati transaksi yang lebih cepat dan aman!', time: '2 Hari yang lalu' }
-            ].map(function (n) { n.read = readSet.indexOf(n.id) !== -1; return n; });
-            section.innerHTML =
-                '<div class="notif-date-group">Baru</div>' +
-                itemMarkup(_rendered[0]) + itemMarkup(_rendered[1]) +
-                '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' +
-                itemMarkup(_rendered[2]) + itemMarkup(_rendered[3]);
+        function renderEmptyNotConnected() {
+            document.getElementById('notif-section').innerHTML = emptyMarkup(false);
         }
 
         async function pullNotifs() {
             const section = document.getElementById('notif-section');
             try {
                 const res = await fetch(CLINCOO_API + '?action=external_pull&api_key=' + encodeURIComponent(syncKey));
-                if (!res.ok) { if (!_rendered.length) renderDemo(); return; }
+                if (!res.ok) { if (!_rendered.length) renderEmptyNotConnected(); return; }
                 const d = await res.json();
                 const notifs = (d.data && d.data.notifications) || [];
                 const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; }));
@@ -322,7 +311,7 @@
                     return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
                 });
                 if (_rendered.length === 0) {
-                    section.innerHTML = emptyMarkup();
+                    section.innerHTML = emptyMarkup(true);
                     return;
                 }
                 const today = _rendered.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });
@@ -331,7 +320,7 @@
                 if (today.length) { html += '<div class="notif-date-group">Baru</div>' + today.map(itemMarkup).join(''); }
                 if (older.length) { html += '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' + older.map(itemMarkup).join(''); }
                 section.innerHTML = html;
-            } catch (e) { if (!_rendered.length) renderDemo(); }
+            } catch (e) { if (!_rendered.length) renderEmptyNotConnected(); }
         }
 
         function markAsRead(element) {
@@ -340,13 +329,9 @@
                 element.style.transform = 'scale(0.98)';
                 setTimeout(() => { element.style.transform = 'scale(1)'; }, 150);
                 const nid = element.getAttribute('data-id');
-                if (syncKey && nid && nid.indexOf('d') !== 0) {
+                if (syncKey && nid) {
                     fetch(CLINCOO_API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'external_read', api_key: syncKey, id: parseInt(nid, 10) }) }).catch(function () {});
-                } else if (nid) {
-                    let readSet = [];
-                    try { readSet = JSON.parse(localStorage.getItem('wallet_notif_read') || '[]'); } catch (e) {}
-                    if (readSet.indexOf(nid) === -1) { readSet.push(nid); try { localStorage.setItem('wallet_notif_read', JSON.stringify(readSet)); } catch (e) {} }
                 }
             }
         }
@@ -356,7 +341,7 @@
             setInterval(function () { if (!document.hidden) pullNotifs(); }, 5000);
             document.addEventListener('visibilitychange', function () { if (!document.hidden) pullNotifs(); });
         } else {
-            renderDemo();
+            renderEmptyNotConnected();
         }
     </script>
 </body>
