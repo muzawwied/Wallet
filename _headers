@@ -1,0 +1,8 @@
+/*
+  X-Content-Type-Options: nosniff
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/notifications.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/profile.html
+  Cache-Control: no-cache, no-store, must-revalidate

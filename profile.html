@@ -2,7 +2,12 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) { location.reload(); }
+        });
+
+        window.addEventListener('DOMContentLoaded', async () => {
     <title>Profil</title>
     <link rel="icon" type="image/png" href="logo.png">
     

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Tampilan Saldo Organik</title>
     <link rel="icon" type="image/png" href="logo.png">
     
@@ -1477,6 +1480,11 @@
             if (page === 'transaksi') {
                 switchSubPage(sub, null, false);
             }
+        });
+
+        // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) { location.reload(); }
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
