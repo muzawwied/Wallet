@@ -661,7 +661,7 @@
                 <div class="form-group">
                     <label class="form-label">Identitas</label>
                     <div class="form-input-wrapper">
-                        <div class="form-input">pengguna@jaringanpribadi</div>
+                        <div class="form-input" id="identity-val" style="font-family: monospace; word-break: break-all; font-size: 0.9rem;">-</div>
                     </div>
                 </div>
 
@@ -852,6 +852,8 @@
     <script>
         let currentPin = '';
 
+        const _BASE = location.hostname === 'muzawwied.github.io' ? '/Wallet' : '';
+
         function switchView(viewId, isHistory = false) {
             document.querySelectorAll('.page-view').forEach(view => {
                 view.classList.remove('active');
@@ -860,7 +862,7 @@
             if (targetView) {
                 targetView.classList.add('active');
                 if (!isHistory) {
-                    const pathName = viewId === 'view-profile' ? '/' : '/' + viewId.replace('view-', '');
+                    const pathName = viewId === 'view-profile' ? _BASE + '/profile.html' : _BASE + '/profile/' + viewId.replace('view-', '');
                     window.history.pushState({ view: viewId }, '', pathName);
                 }
             }
@@ -1041,6 +1043,10 @@
             }
             document.getElementById('profile-id-text').innerText = savedId;
 
+            let walletAddr = localStorage.getItem('user_wallet_address');
+            const identityEl = document.getElementById('identity-val');
+            if (identityEl) identityEl.innerText = walletAddr || 'Belum ada alamat wallet';
+
             let savedAvatar = localStorage.getItem('saved_user_avatar');
             if (savedAvatar) {
                 const avatarContainer = document.getElementById('profile-avatar-display');
@@ -1086,7 +1092,7 @@
         initProfile();
         
         if (!window.history.state) {
-            window.history.replaceState({ view: 'view-profile' }, '', '/');
+            window.history.replaceState({ view: 'view-profile' }, '', _BASE + '/profile.html');
         }
     </script>
 </body>
