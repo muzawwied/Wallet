@@ -914,6 +914,7 @@
                 </div>
 
                 <button class="btn-submit" onclick="handleSend()">Lanjutkan</button>
+                        <div id="send-error" style="color:#dc2626;font-size:12px;margin-top:8px;text-align:center;"></div>
             </div>
         </div>
         
@@ -1025,6 +1026,10 @@
         let transactions = [];
         let previousPage = 'dompet';
         let walletAddress = '';
+        let walletSecret = '';
+        const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
+            ? 'https://wallet-43a.pages.dev' : location.origin;
+        const API = WALLET_API + '/api/wallet';
 
         function generateRandomWalletAddress() {
             const chars = '0123456789abcdef';
@@ -1035,13 +1040,42 @@
             return address;
         }
 
-        function initWalletAddress() {
+        async function initWalletAddress() {
             let savedAddress = localStorage.getItem('user_wallet_address');
+            let savedSecret = localStorage.getItem('user_wallet_secret');
             
             if (!savedAddress) {
                 savedAddress = generateRandomWalletAddress();
                 localStorage.setItem('user_wallet_address', savedAddress);
             }
+            walletSecret = savedSecret || '';
+            
+            // Klaim/verifikasi alamat di server (backend ledger nyata)
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'init', address: savedAddress, secret: walletSecret })
+                }).then(r => r.json());
+                if (res.success && res.secret) {
+                    walletSecret = res.secret;
+                    localStorage.setItem('user_wallet_secret', res.secret);
+                } else if (res.error) {
+                    // alamat bentrok perangkat lain → buat baru (sekali)
+                    savedAddress = generateRandomWalletAddress();
+                    localStorage.setItem('user_wallet_address', savedAddress);
+                    walletAddress = savedAddress;
+                    const res2 = await fetch(API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'init', address: savedAddress })
+                    }).then(r => r.json());
+                    if (res2.success && res2.secret) {
+                        walletSecret = res2.secret;
+                        localStorage.setItem('user_wallet_secret', res2.secret);
+                    }
+                }
+            } catch (e) {}
             
             walletAddress = savedAddress;
             
@@ -1066,6 +1100,31 @@
 
         function formatRupiah(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        let _stateTimer = null;
+        async function loadWalletState() {
+            if (!walletAddress) return;
+            try {
+                const res = await fetch(API + '?action=state&address=' + encodeURIComponent(walletAddress)).then(r => r.json());
+                if (res.success) {
+                    currentBalance = res.balance || 0;
+                    transactions = (res.transactions || []).map(t => ({
+                        id: t.id,
+                        type: t.type,
+                        name: t.note ? t.note : t.name,
+                        date: t.date,
+                        amount: (t.type === 'masuk' ? '+' : '-') + formatRupiah(t.amount)
+                    }));
+                    updateBalanceDisplay();
+                    renderHistory();
+                } else if (res.not_found) {
+                    // akun belum ada di server (mis. DB baru) — klaim ulang
+                    walletSecret = '';
+                    localStorage.removeItem('user_wallet_secret');
+                    initWalletAddress().then(loadWalletState);
+                }
+            } catch (e) {}
         }
 
         function updateBalanceDisplay() {
@@ -1127,45 +1186,61 @@
             `;
         }
 
-        function handleSend() {
+        async function handleSend() {
             const targetEl = document.getElementById('send-target');
             const amountEl = document.getElementById('send-amount');
             const noteEl = document.getElementById('send-note');
+            const errEl = document.getElementById('send-error');
 
             if (!targetEl || !amountEl) return;
 
-            const targetVal = targetEl.value.trim();
+            const targetVal = targetEl.value.trim().toLowerCase();
             const amountVal = parseInt(amountEl.value, 10);
 
-            if (!targetVal || isNaN(amountVal) || amountVal <= 0 || amountVal > currentBalance) {
+            if (errEl) errEl.textContent = '';
+
+            if (!targetVal || !/^0x[0-9a-fA-F]{40}$/.test(targetVal)) {
+                if (errEl) errEl.textContent = 'Alamat penerima tidak valid (format 0x… 40 karakter).';
+                return;
+            }
+            if (targetVal === walletAddress.toLowerCase()) {
+                if (errEl) errEl.textContent = 'Tidak bisa kirim ke alamat sendiri.';
+                return;
+            }
+            if (isNaN(amountVal) || amountVal < 1000) {
+                if (errEl) errEl.textContent = 'Minimal kirim Rp 1.000.';
+                return;
+            }
+            if (amountVal > currentBalance) {
+                if (errEl) errEl.textContent = 'Saldo tidak cukup. Saldo Anda Rp ' + formatRupiah(currentBalance) + '.';
                 return;
             }
 
-            currentBalance -= amountVal;
+            const btn = document.querySelector('#page-kirim .btn-submit, .btn-submit');
+            if (btn) { btn.disabled = true; }
 
-            const now = new Date();
-            const hrs = String(now.getHours()).padStart(2, '0');
-            const mins = String(now.getMinutes()).padStart(2, '0');
-            const dateText = `Hari ini, ${hrs}:${mins}`;
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                    body: JSON.stringify({ action: 'send', from: walletAddress, to: targetVal, amount: amountVal, note: (noteEl ? noteEl.value.trim() : '') })
+                }).then(r => r.json());
 
-            const newTransaction = {
-                id: Date.now(),
-                type: 'keluar',
-                name: 'Kirim Saldo',
-                date: dateText,
-                amount: '-' + formatRupiah(amountVal)
-            };
-
-            transactions.unshift(newTransaction);
-
-            targetEl.value = '';
-            amountEl.value = '';
-            if (noteEl) noteEl.value = '';
-
-            updateBalanceDisplay();
-            renderHistory();
-
-            switchPage('dompet');
+                if (res.success) {
+                    currentBalance = res.balance;
+                    targetEl.value = '';
+                    amountEl.value = '';
+                    if (noteEl) noteEl.value = '';
+                    await loadWalletState();
+                    switchPage('dompet');
+                } else {
+                    if (errEl) errEl.textContent = res.error || 'Transaksi gagal.';
+                }
+            } catch (e) {
+                if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
+            } finally {
+                if (btn) { btn.disabled = false; }
+            }
         }
 
         function stopCamera() {
@@ -1364,10 +1439,19 @@
             }
         });
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initWalletAddress();
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initWalletAddress();
+            await loadWalletState();
             updateBalanceDisplay();
             renderHistory();
+
+            // Real-time: cek saldo & riwayat tiap 10 detik (saat tab aktif)
+            setInterval(() => {
+                if (!document.hidden) loadWalletState();
+            }, 10000);
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) loadWalletState();
+            });
 
             const pathParts = window.location.pathname.split('/').filter(p => p && p !== 'index.html');
             const validPages = ['dompet', 'transaksi', 'scan', 'riwayat'];
