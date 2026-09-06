@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tampilan Saldo Organik</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2338bdf8'/%3E%3Cpath d='M50 22 L78 50 L50 78 L22 50 Z' fill='%23ffffff'/%3E%3C/svg%3E">
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YR2570ZXEM"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-YR2570ZXEM');
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .page-bg-deco {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .bg-deco-glow {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+        }
+
+        .bg-deco-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(56, 189, 248, 0.15);
+        }
+
+        .bg-deco-ring-1 {
+            width: 320px;
+            height: 320px;
+            top: -80px;
+            right: -80px;
+        }
+
+        .bg-deco-ring-2 {
+            width: 180px;
+            height: 180px;
+            top: 120px;
+            right: 80px;
+            border-color: rgba(56, 189, 248, 0.25);
+        }
+
+        .page {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .page.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 4px;
+            z-index: 50;
+        }
+
+        .header-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .balance-text-container {
+            width: calc(100% - 32px);
+            max-width: 500px;
+            margin-top: 28px;
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            border-radius: 32px;
+            background-color: transparent;
+            animation: cardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(16px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .balance-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .balance-amount-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .balance-amount-group {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .balance-currency {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .balance-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        .history-section {
+            width: 100%;
+            max-width: 500px;
+            padding: 0 16px 100px;
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            opacity: 0;
+            animation: cardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .history-link {
+            font-size: 0.8rem;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            background-color: transparent;
+        }
+
+        .history-item-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .history-icon-wrapper {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .icon-in, .icon-out {
+            background-color: #ffffff;
+            border: 1.5px solid rgba(56, 189, 248, 0.5);
+            color: var(--accent-blue);
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.08);
+        }
+
+        .history-details {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .history-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .history-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .history-amount {
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .amount-in {
+            color: #16a34a;
+        }
+
+        .amount-out {
+            color: var(--text-main);
+        }
+
+        .empty-history-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .eye-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .eye-btn:hover {
+            opacity: 0.8;
+        }
+
+        .top-tabs-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 4px 16px 0;
+        }
+
+        .top-tab {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s ease;
+            background: none;
+            border: none;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .top-tab:hover {
+            color: var(--text-main);
+        }
+
+        .top-tab.active {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .top-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-blue);
+        }
+
+        .sub-page {
+            display: none;
+            width: 100%;
+            padding: 20px 16px 80px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .sub-page.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .qr-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 0;
+        }
+
+        .square-qr-svg {
+            width: 220px;
+            height: 220px;
+            max-width: 100%;
+            margin-top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .square-qr-svg img, .square-qr-svg canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+
+        .wallet-address-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 28px;
+        }
+
+        .wallet-address-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .wallet-capsule {
+            width: 100%;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 9999px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .wallet-address-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-main);
+        }
+
+        .wallet-warning-note {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.45;
+            text-align: left;
+            margin-top: 4px;
+            margin-left: 4px;
+            margin-right: 4px;
+        }
+
+        .send-form-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .form-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-family: inherit;
+            width: 100%;
+            -webkit-appearance: none;
+        }
+
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-input[type="number"]::-webkit-inner-spin-button,
+        .form-input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .currency-prefix {
+            padding-left: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1rem;
+        }
+
+        .amount-input {
+            padding-left: 16px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .icon-suffix {
+            padding-right: 16px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .icon-suffix:hover {
+            color: var(--accent-blue);
+        }
+
+        .balance-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 2px;
+            margin-right: 4px;
+        }
+
+        .balance-hint span {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            border: none;
+            outline: none;
+            border-radius: 9999px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+            transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
+        }
+
+        .scanner-header {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 16px 6px;
+            background-color: #ffffff;
+            position: relative;
+            z-index: 10;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            margin-left: -4px;
+            border-radius: 50%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .scanner-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .scanner-body {
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 40px 20px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 24px;
+            overflow: hidden;
+            background-color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        #scanner-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scanner-frame {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .corner {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-color: var(--accent-blue);
+            border-style: solid;
+        }
+
+        .corner-tl {
+            top: 16px;
+            left: 16px;
+            border-width: 3.5px 0 0 3.5px;
+            border-top-left-radius: 12px;
+        }
+
+        .corner-tr {
+            top: 16px;
+            right: 16px;
+            border-width: 3.5px 3.5px 0 0;
+            border-top-right-radius: 12px;
+        }
+
+        .corner-bl {
+            bottom: 16px;
+            left: 16px;
+            border-width: 0 0 3.5px 3.5px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .corner-br {
+            bottom: 16px;
+            right: 16px;
+            border-width: 0 3.5px 3.5px 0;
+            border-bottom-right-radius: 12px;
+        }
+
+        .scan-line {
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 1) 50%, rgba(56, 189, 248, 0) 100%);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+            animation: scanAnim 2.2s infinite ease-in-out;
+        }
+
+        @keyframes scanAnim {
+            0% { top: 20px; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { top: calc(100% - 20px); opacity: 0; }
+        }
+
+        .scanner-instruction {
+            margin-top: 24px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .camera-error-msg {
+            position: absolute;
+            padding: 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .riwayat-filter-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 16px 12px;
+            overflow-x: auto;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .riwayat-filter-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .riwayat-filter {
+            padding: 8px 18px;
+            border-radius: 9999px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .riwayat-filter:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .riwayat-filter.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 59px;
+            background-color: #ffffff;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+            border-top: 1px solid #f3f4f6;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            position: relative;
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex: 1;
+            gap: 4px;
+            padding-bottom: 8px;
+            padding-top: 8px;
+            color: #9ca3af;
+            transition: color 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-btn:hover {
+            color: #6b7280;
+        }
+
+        .nav-btn.active {
+            color: var(--accent-blue);
+        }
+
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
+        }
+
+        .nav-text {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-bg-deco">
+        <div class="bg-deco-glow"></div>
+        <div class="bg-deco-ring bg-deco-ring-1"></div>
+        <div class="bg-deco-ring bg-deco-ring-2"></div>
+    </div>
+
+    <div id="page-dompet" class="page active">
+        <div class="header-actions">
+            <a href="notifications.html" class="header-btn" aria-label="Notifikasi">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+                </svg>
+            </a>
+            <a href="profile.html" class="header-btn" aria-label="Profil Pengguna">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </a>
+        </div>
+
+        <div class="balance-text-container">
+            <span class="balance-label">Saldo Anda</span>
+            <div class="balance-amount-wrapper">
+                <div class="balance-amount-group">
+                    <span id="balance-val" class="balance-amount">12.500.000</span>
+                </div>
+                <button class="eye-btn" onclick="toggleBalance()" aria-label="Tutup Saldo" id="eye-btn">
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="history-header">
+                <span class="history-title">Riwayat Transaksi</span>
+                <button class="history-link" style="background:none; border:none; outline:none; cursor:pointer;" onclick="openRiwayat()">Lihat Semua</button>
+            </div>
+            
+            <div class="history-list" id="home-history-list">
+            </div>
+        </div>
+    </div>
+
+    <div id="page-transaksi" class="page">
+        <div class="top-tabs-container">
+            <button class="top-tab active" onclick="switchSubPage('kirim', this)">Kirim</button>
+            <button class="top-tab" onclick="switchSubPage('terima', this)">Terima</button>
+        </div>
+
+        <div id="subpage-kirim" class="sub-page active">
+            <div class="send-form-container">
+                <div class="form-group">
+                    <label class="form-label">Tujuan Transfer</label>
+                    <div class="form-input-wrapper">
+                        <input type="text" id="send-target" class="form-input" placeholder="Alamat dompet atau ID">
+                        <div class="icon-suffix" aria-label="Scan QR" onclick="openScanner()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-qr-code-icon lucide-qr-code"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nominal</label>
+                    <div class="form-input-wrapper">
+                        <input type="number" id="send-amount" class="form-input amount-input" placeholder="0">
+                    </div>
+                    <div class="balance-hint">Tersedia: <span id="available-balance-hint">12.500.000</span></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Catatan (Opsional)</label>
+                    <div class="form-input-wrapper">
+                        <input type="text" id="send-note" class="form-input" placeholder="Pesan untuk penerima">
+                    </div>
+                </div>
+
+                <div class="wallet-warning-note" style="margin-top: -4px; margin-bottom: 4px;">
+                    Pastikan rincian tujuan dan nominal transfer sudah benar. Transaksi yang telah diproses tidak dapat dibatalkan.
+                </div>
+
+                <button class="btn-submit" onclick="handleSend()">Lanjutkan</button>
+            </div>
+        </div>
+        
+        <div id="subpage-terima" class="sub-page">
+            <div class="qr-wrapper">
+                <div id="wallet-qrcode" class="square-qr-svg"></div>
+
+                <div class="wallet-address-container">
+                    <span class="wallet-address-label">Alamat Wallet</span>
+                    <div class="wallet-capsule">
+                        <span class="wallet-address-text" id="wallet-address-val">Memuat...</span>
+                        <button class="copy-btn" onclick="copyAddress(this)" aria-label="Salin Alamat">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="wallet-warning-note">
+                        Pastikan rincian tujuan transfer sudah benar. Kesalahan pengiriman tidak dapat dibatalkan.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-scan" class="page" style="background-color: #ffffff; min-height: 100vh;">
+        <div class="scanner-header">
+            <button class="back-btn" onclick="closeScanner()" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+            </button>
+            <span class="scanner-title">Pindai Kode QR</span>
+        </div>
+
+        <div class="scanner-body">
+            <div class="video-container">
+                <video id="scanner-video" autoplay playsinline muted></video>
+                <div id="camera-fallback" class="camera-error-msg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                        <circle cx="12" cy="13" r="3"/>
+                        <line x1="2" y1="2" x2="22" y2="22"/>
+                    </svg>
+                    <span>Kamera tidak tersedia atau izin ditolak</span>
+                </div>
+                <div class="scanner-frame">
+                    <div class="corner corner-tl"></div>
+                    <div class="corner corner-tr"></div>
+                    <div class="corner corner-bl"></div>
+                    <div class="corner corner-br"></div>
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+            <p class="scanner-instruction">Posisikan Kode QR di dalam bingkai untuk memindai</p>
+        </div>
+    </div>
+
+    <div id="page-riwayat" class="page" style="background-color: #ffffff; min-height: 100vh;">
+        <div class="scanner-header" style="position: sticky; top: 0; background: #fff; z-index: 20;">
+            <button class="back-btn" onclick="closeRiwayat()" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+            </button>
+            <span class="scanner-title">Riwayat Transaksi</span>
+        </div>
+
+        <div class="riwayat-filter-container">
+            <button class="riwayat-filter active" onclick="filterRiwayat('semua', this)">Semua</button>
+            <button class="riwayat-filter" onclick="filterRiwayat('masuk', this)">Masuk</button>
+            <button class="riwayat-filter" onclick="filterRiwayat('keluar', this)">Keluar</button>
+        </div>
+
+        <div class="history-section" style="margin-top: 0; max-width: 100%; padding-top: 24px;">
+            <div class="history-list" id="full-history-list">
+            </div>
+        </div>
+
+        <div style="margin: 24px 16px 32px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;">
+            <div style="font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 4px;">Sinkron dengan Clincoo</div>
+            <div id="clincoo-sync-status" style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Belum tersambung</div>
+            <input id="clincoo-key-input" type="text" placeholder="Tempel API key dari Dompet Clincoo" style="width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 13px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; margin-bottom: 10px;">
+            <button onclick="saveSyncKey()" style="width: 100%; padding: 10px 12px; font-size: 13px; font-weight: 600; color: #fff; background: #0ea5e9; border: none; border-radius: 10px; cursor: pointer;">Hubungkan</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchPage('dompet', this)" aria-label="Dompet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v-2a1 1 0 0 0-1-1"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+            </svg>
+            <span class="nav-text">Dompet</span>
+        </button>
+
+        <button class="nav-btn" onclick="switchPage('transaksi', this)" aria-label="Transaksi">
+            <svg style="transform: rotate(20deg);" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+            </svg>
+            <span class="nav-text">Transaksi</span>
+        </button>
+    </nav>
+
+    <script>
+        let isHidden = false;
+        let currentBalance = 12500000;
+        let mediaStream = null;
+        let currentFilter = 'semua';
+        let transactions = [];
+        let previousPage = 'dompet';
+        let walletAddress = '';
+
+        // === Sinkronisasi Clincoo — real-time, dua arah, tanpa login (API key) ===
+        const CLINCOO_API = 'https://clincoo-be2.pages.dev/api/wallet-sync';
+        const _BASE = location.hostname === 'muzawwied.github.io' ? '/Wallet' : '';
+        let syncKey = '';
+        try { syncKey = localStorage.getItem('clincoo_wallet_key') || ''; } catch (e) {}
+        let _lastSnapshot = '';
+        let _pushBusy = false;
+
+        function persistLocal() {
+            try {
+                localStorage.setItem('wallet_balance', String(currentBalance));
+                localStorage.setItem('wallet_transactions', JSON.stringify(transactions));
+            } catch (e) {}
+        }
+        function restoreLocal() {
+            try {
+                const b = localStorage.getItem('wallet_balance');
+                if (b !== null && !isNaN(parseFloat(b))) currentBalance = parseFloat(b);
+                const t = localStorage.getItem('wallet_transactions');
+                if (t) { const arr = JSON.parse(t); if (Array.isArray(arr)) transactions = arr; }
+            } catch (e) {}
+        }
+        function parseRupiahAmount(s) {
+            const n = String(s || '').replace(/[^0-9]/g, '');
+            return n ? parseInt(n, 10) : 0;
+        }
+        function txToClincoo(item) {
+            return {
+                id: String(item.id),
+                title: item.name || 'Transaksi',
+                amount: parseRupiahAmount(item.amount),
+                type: item.type === 'masuk' ? 'in' : 'out',
+                method: 'wallet'
+            };
+        }
+        function txFromClincoo(t) {
+            let d = t.created_at || '';
+            if (d) {
+                try {
+                    const dt = new Date(d.replace(' ', 'T') + 'Z');
+                    d = dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' +
+                        dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                } catch (e) {}
+            }
+            return {
+                id: t.id,
+                type: t.type === 'in' ? 'masuk' : 'keluar',
+                name: t.title || 'Transaksi',
+                date: d || 'Baru saja',
+                amount: (t.type === 'in' ? '+' : '-') + formatRupiah(t.amount || 0)
+            };
+        }
+        async function pushToClincoo() {
+            if (!syncKey || _pushBusy) return;
+            _pushBusy = true;
+            try {
+                await fetch(CLINCOO_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'external_push',
+                        api_key: syncKey,
+                        data: { balance: currentBalance, transactions: transactions.map(txToClincoo).filter(t => t.amount > 0) }
+                    })
+                });
+            } catch (e) {}
+            _pushBusy = false;
+        }
+        async function pullFromClincoo(manual) {
+            if (!syncKey) return;
+            try {
+                const res = await fetch(CLINCOO_API + '?action=external_pull&api_key=' + encodeURIComponent(syncKey));
+                if (!res.ok) {
+                    setSyncStatus(false);
+                    if (manual) alert('Gagal sinkron. Pastikan API key Clincoo benar.');
+                    return;
+                }
+                const d = await res.json();
+                const data = d.data || {};
+                const remoteTxs = (data.transactions || []).map(txFromClincoo);
+                const snap = JSON.stringify([data.balance, remoteTxs]);
+                if (snap !== _lastSnapshot) {
+                    _lastSnapshot = snap;
+                    currentBalance = data.balance || 0;
+                    transactions = remoteTxs;
+                    persistLocal();
+                    updateBalanceDisplay();
+                    renderHistory();
+                }
+                setSyncStatus(true);
+            } catch (e) { setSyncStatus(false); }
+        }
+        function setSyncStatus(ok) {
+            const el = document.getElementById('clincoo-sync-status');
+            if (!el) return;
+            el.textContent = ok ? 'Tersambung dengan Clincoo' : 'Tidak dapat terhubung';
+            el.style.color = ok ? '#10b981' : '#ef4444';
+        }
+        function saveSyncKey() {
+            const el = document.getElementById('clincoo-key-input');
+            if (!el) return;
+            syncKey = el.value.trim();
+            try { localStorage.setItem('clincoo_wallet_key', syncKey); } catch (e) {}
+            _lastSnapshot = '';
+            if (syncKey) {
+                if (transactions.length > 0 || currentBalance > 0) pushToClincoo(); // gabungkan data lokal dulu
+                pullFromClincoo(true);
+            } else {
+                setSyncStatus(false);
+                document.getElementById('clincoo-sync-status').textContent = 'Belum tersambung';
+            }
+        }
+        setInterval(function () { if (!document.hidden && syncKey) pullFromClincoo(false); }, 5000);
+        document.addEventListener('visibilitychange', function () { if (!document.hidden && syncKey) pullFromClincoo(false); });
+
+        function generateRandomWalletAddress() {
+            const chars = '0123456789abcdef';
+            let address = '0x';
+            for (let i = 0; i < 40; i++) {
+                address += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return address;
+        }
+
+        function initWalletAddress() {
+            let savedAddress = localStorage.getItem('user_wallet_address');
+            
+            if (!savedAddress) {
+                savedAddress = generateRandomWalletAddress();
+                localStorage.setItem('user_wallet_address', savedAddress);
+            }
+            
+            walletAddress = savedAddress;
+            
+            const addressEl = document.getElementById('wallet-address-val');
+            if (addressEl) {
+                addressEl.textContent = walletAddress;
+            }
+            
+            const qrContainer = document.getElementById('wallet-qrcode');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: walletAddress,
+                    width: 512,
+                    height: 512,
+                    colorDark : "#0f172a",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M
+                });
+            }
+        }
+
+        function formatRupiah(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function updateBalanceDisplay() {
+            const balanceEl = document.getElementById('balance-val');
+            const availableHintEl = document.getElementById('available-balance-hint');
+            if (balanceEl) {
+                balanceEl.textContent = isHidden ? "••••••••" : formatRupiah(currentBalance);
+            }
+            if (availableHintEl) {
+                availableHintEl.textContent = formatRupiah(currentBalance);
+            }
+        }
+
+        function renderHistory() {
+            const homeList = document.getElementById('home-history-list');
+            const fullList = document.getElementById('full-history-list');
+            const emptyMarkup = `<div class="empty-history-state">Belum ada transaksi</div>`;
+
+            if (homeList) {
+                if (transactions.length === 0) {
+                    homeList.innerHTML = emptyMarkup;
+                } else {
+                    const previewItems = transactions.slice(0, 3);
+                    homeList.innerHTML = previewItems.map(item => createHistoryItemMarkup(item)).join('');
+                }
+            }
+
+            if (fullList) {
+                const filtered = transactions.filter(t => currentFilter === 'semua' || t.type === currentFilter);
+                if (filtered.length === 0) {
+                    fullList.innerHTML = emptyMarkup;
+                } else {
+                    fullList.innerHTML = filtered.map(item => createHistoryItemMarkup(item)).join('');
+                }
+            }
+        }
+
+        function createHistoryItemMarkup(item) {
+            const isIn = item.type === 'masuk';
+            const iconClass = isIn ? 'icon-in' : 'icon-out';
+            const amountClass = isIn ? 'amount-in' : 'amount-out';
+            const arrowSvg = isIn 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`;
+
+            return `
+                <div class="history-item" data-type="${item.type}">
+                    <div class="history-item-left">
+                        <div class="history-icon-wrapper ${iconClass}">
+                            ${arrowSvg}
+                        </div>
+                        <div class="history-details">
+                            <span class="history-name">${item.name}</span>
+                            <span class="history-date">${item.date}</span>
+                        </div>
+                    </div>
+                    <span class="history-amount ${amountClass}">${item.amount}</span>
+                </div>
+            `;
+        }
+
+        function handleSend() {
+            const targetEl = document.getElementById('send-target');
+            const amountEl = document.getElementById('send-amount');
+            const noteEl = document.getElementById('send-note');
+
+            if (!targetEl || !amountEl) return;
+
+            const targetVal = targetEl.value.trim();
+            const amountVal = parseInt(amountEl.value, 10);
+
+            if (!targetVal || isNaN(amountVal) || amountVal <= 0 || amountVal > currentBalance) {
+                return;
+            }
+
+            currentBalance -= amountVal;
+
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const dateText = `Hari ini, ${hrs}:${mins}`;
+
+            const newTransaction = {
+                id: Date.now(),
+                type: 'keluar',
+                name: 'Kirim Saldo',
+                date: dateText,
+                amount: '-' + formatRupiah(amountVal)
+            };
+
+            transactions.unshift(newTransaction);
+
+            targetEl.value = '';
+            amountEl.value = '';
+            if (noteEl) noteEl.value = '';
+
+            updateBalanceDisplay();
+            renderHistory();
+
+            persistLocal();
+            pushToClincoo();
+
+            switchPage('dompet');
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            const video = document.getElementById('scanner-video');
+            if (video) video.srcObject = null;
+        }
+
+        function openScanner() {
+            switchPage('scan');
+            document.querySelector('.bottom-nav').style.display = 'none';
+
+            const video = document.getElementById('scanner-video');
+            const fallback = document.getElementById('camera-fallback');
+            fallback.style.display = 'none';
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } }
+                }).then(stream => {
+                    mediaStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                }).catch(err => {
+                    fallback.style.display = 'flex';
+                });
+            } else {
+                fallback.style.display = 'flex';
+            }
+        }
+
+        function closeScanner() {
+            stopCamera();
+            switchPage(previousPage || 'dompet');
+        }
+        
+        function openRiwayat() {
+            switchPage('riwayat');
+            document.querySelector('.bottom-nav').style.display = 'none';
+        }
+        
+        function closeRiwayat() {
+            switchPage(previousPage || 'dompet');
+        }
+        
+        function filterRiwayat(type, btn) {
+            document.querySelectorAll('.riwayat-filter').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            currentFilter = type;
+            renderHistory();
+        }
+
+        function updateURL(pageName, subPageName) {
+            try {
+                let newPath = _BASE + `/${pageName}`;
+                if (pageName === 'transaksi' && subPageName) {
+                    newPath += `/${subPageName}`;
+                }
+                window.history.pushState({ pageName, subPageName }, '', newPath);
+            } catch (e) {}
+        }
+
+        function toggleBalance() {
+            const eyeIconEl = document.getElementById('eye-icon');
+            isHidden = !isHidden;
+
+            updateBalanceDisplay();
+
+            if (eyeIconEl) {
+                if (isHidden) {
+                    eyeIconEl.innerHTML = `
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                        <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                        <line x1="2" x2="22" y1="2" y2="22"/>
+                    `;
+                } else {
+                    eyeIconEl.innerHTML = `
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    `;
+                }
+            }
+        }
+
+        function copyAddress(btn) {
+            const address = document.getElementById('wallet-address-val')?.textContent || '';
+            try {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = address;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                
+                if (btn) {
+                    const originalIcon = btn.innerHTML;
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalIcon;
+                    }, 2000);
+                }
+            } catch (e) {}
+        }
+
+        function switchPage(pageName, btnElement, updateState = true) {
+            if (pageName !== 'scan' && pageName !== 'riwayat') {
+                previousPage = pageName;
+            }
+
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const targetPage = document.getElementById('page-' + pageName);
+            if (targetPage) targetPage.classList.add('active');
+
+            if (pageName === 'scan' || pageName === 'riwayat') {
+                document.querySelector('.bottom-nav').style.display = 'none';
+            } else {
+                document.querySelector('.bottom-nav').style.display = 'flex';
+            }
+
+            if (btnElement) {
+                btnElement.classList.add('active');
+            } else {
+                const navIndex = pageName === 'dompet' ? 0 : 1;
+                document.querySelectorAll('.nav-btn')[navIndex]?.classList.add('active');
+            }
+
+            if (updateState) {
+                const activeSub = document.querySelector('.sub-page.active')?.id.replace('subpage-', '') || 'kirim';
+                updateURL(pageName, activeSub);
+            }
+        }
+
+        function switchSubPage(subPageName, btnElement, updateState = true) {
+            document.querySelectorAll('.sub-page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            document.querySelectorAll('.top-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const targetSub = document.getElementById('subpage-' + subPageName);
+            if (targetSub) targetSub.classList.add('active');
+
+            if (btnElement) {
+                btnElement.classList.add('active');
+            } else {
+                const tabIndex = subPageName === 'kirim' ? 0 : 1;
+                document.querySelectorAll('.top-tab')[tabIndex]?.classList.add('active');
+            }
+
+            if (updateState) {
+                updateURL('transaksi', subPageName);
+            }
+        }
+
+        window.addEventListener('popstate', (e) => {
+            let page = 'dompet';
+            let sub = 'kirim';
+
+            if (e.state) {
+                page = e.state.pageName || 'dompet';
+                sub = e.state.subPageName || 'kirim';
+            } else {
+                const pathParts = window.location.pathname.split('/').filter(p => p);
+                const validPages = ['dompet', 'transaksi', 'scan', 'riwayat'];
+                
+                for (let i = 0; i < pathParts.length; i++) {
+                    if (validPages.includes(pathParts[i])) {
+                        page = pathParts[i];
+                        if (pathParts[i+1]) sub = pathParts[i+1];
+                        break;
+                    }
+                }
+            }
+            
+            if (page !== 'scan') {
+                stopCamera();
+            }
+            
+            switchPage(page, null, false);
+            if (page === 'transaksi') {
+                switchSubPage(sub, null, false);
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            restoreLocal();
+            initWalletAddress();
+            updateBalanceDisplay();
+            renderHistory();
+            const keyInput = document.getElementById('clincoo-key-input');
+            if (keyInput && syncKey) keyInput.value = syncKey;
+            if (syncKey) pullFromClincoo(false);
+
+            const pathParts = window.location.pathname.split('/').filter(p => p && p !== 'index.html');
+            const validPages = ['dompet', 'transaksi', 'scan', 'riwayat'];
+            
+            let page = 'dompet';
+            let sub = 'kirim';
+
+            for (let i = 0; i < pathParts.length; i++) {
+                if (validPages.includes(pathParts[i])) {
+                    page = pathParts[i];
+                    if (pathParts[i+1]) {
+                        sub = pathParts[i+1];
+                    }
+                    break;
+                }
+            }
+
+            switchPage(page, null, false);
+            if (page === 'transaksi') {
+                switchSubPage(sub, null, false);
+            }
+
+            if (pathParts.length === 0 || window.location.pathname.endsWith('index.html')) {
+                try {
+                    window.history.replaceState({ pageName: 'dompet', subPageName: null }, '', _BASE + '/dompet');
+                } catch (e) {}
+            }
+        });
+    </script>
+</body>
+</html>
