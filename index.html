@@ -287,6 +287,19 @@
             color: var(--text-main);
         }
 
+        .shimmer-bar {
+            display: inline-block;
+            height: 1em;
+            background: linear-gradient(90deg, rgba(148,163,184,0.12) 25%, rgba(148,163,184,0.28) 50%, rgba(148,163,184,0.12) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 8px;
+            vertical-align: middle;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skeleton-tx { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid rgba(148,163,184,0.12); }
+        .skeleton-tx .sk-icon { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+        .skeleton-tx .sk-lines { flex: 1; display: flex; flex-direction: column; gap: 8px; }
         .empty-history-state {
             text-align: center;
             padding: 32px 16px;
@@ -854,7 +867,7 @@
             <span class="balance-label">Saldo Anda</span>
             <div class="balance-amount-wrapper">
                 <div class="balance-amount-group">
-                    <span id="balance-val" class="balance-amount">12.500.000</span>
+                    <span id="balance-val" class="balance-amount"><span class="shimmer-bar" style="width:180px; height:1em;"></span></span>
                 </div>
                 <button class="eye-btn" onclick="toggleBalance()" aria-label="Tutup Saldo" id="eye-btn">
                     <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1020,7 +1033,8 @@
 
     <script>
         let isHidden = false;
-        let currentBalance = 12500000;
+        let currentBalance = 0;
+        let stateLoaded = false;
         let mediaStream = null;
         let currentFilter = 'semua';
         let transactions = [];
@@ -1108,6 +1122,7 @@
             try {
                 const res = await fetch(API + '?action=state&address=' + encodeURIComponent(walletAddress)).then(r => r.json());
                 if (res.success) {
+                    stateLoaded = true;
                     currentBalance = res.balance || 0;
                     transactions = (res.transactions || []).map(t => ({
                         id: t.id,
@@ -1131,17 +1146,42 @@
             const balanceEl = document.getElementById('balance-val');
             const availableHintEl = document.getElementById('available-balance-hint');
             if (balanceEl) {
-                balanceEl.textContent = isHidden ? "••••••••" : formatRupiah(currentBalance);
+                if (!stateLoaded) {
+                    balanceEl.innerHTML = '<span class="shimmer-bar" style="width:180px; height:1em;"></span>';
+                } else {
+                    balanceEl.textContent = isHidden ? "••••••••" : formatRupiah(currentBalance);
+                }
             }
             if (availableHintEl) {
                 availableHintEl.textContent = formatRupiah(currentBalance);
             }
         }
 
+        function renderSkeletons() {
+            const skItem = `
+                <div class="skeleton-tx">
+                    <div class="sk-icon shimmer-bar" style="width:44px;height:44px;"></div>
+                    <div class="sk-lines">
+                        <span class="shimmer-bar" style="width:140px;"></span>
+                        <span class="shimmer-bar" style="width:90px; height:0.75em;"></span>
+                    </div>
+                    <span class="shimmer-bar" style="width:64px; height:0.875em;"></span>
+                </div>`;
+            const homeList = document.getElementById('home-history-list');
+            const fullList = document.getElementById('full-history-list');
+            if (homeList) homeList.innerHTML = skItem.repeat(3);
+            if (fullList) fullList.innerHTML = skItem.repeat(6);
+        }
+
         function renderHistory() {
             const homeList = document.getElementById('home-history-list');
             const fullList = document.getElementById('full-history-list');
             const emptyMarkup = `<div class="empty-history-state">Belum ada transaksi</div>`;
+
+            if (!stateLoaded) {
+                renderSkeletons();
+                return;
+            }
 
             if (homeList) {
                 if (transactions.length === 0) {
