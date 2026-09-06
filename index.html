@@ -289,7 +289,7 @@
 
         .shimmer-bar {
             display: inline-block;
-            height: 1em;
+            height: 0.8em;
             background: linear-gradient(90deg, rgba(148,163,184,0.12) 25%, rgba(148,163,184,0.28) 50%, rgba(148,163,184,0.12) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.4s infinite;
@@ -867,7 +867,7 @@
             <span class="balance-label">Saldo Anda</span>
             <div class="balance-amount-wrapper">
                 <div class="balance-amount-group">
-                    <span id="balance-val" class="balance-amount"><span class="shimmer-bar" style="width:180px; height:1em;"></span></span>
+                    <span id="balance-val" class="balance-amount"><span class="shimmer-bar" style="width:180px; height:0.55em; border-radius:6px;"></span></span>
                 </div>
                 <button class="eye-btn" onclick="toggleBalance()" aria-label="Tutup Saldo" id="eye-btn">
                     <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -912,7 +912,7 @@
                     <div class="form-input-wrapper">
                         <input type="number" id="send-amount" class="form-input amount-input" placeholder="0">
                     </div>
-                    <div class="balance-hint">Tersedia: <span id="available-balance-hint"><span class="shimmer-bar" style="width:70px; height:0.75em;"></span></span></div>
+                    <div class="balance-hint">Tersedia: <span id="available-balance-hint"><span class="shimmer-bar" style="width:70px; height:0.55em; border-radius:5px;"></span></span></div>
                 </div>
 
                 <div class="form-group">
@@ -1147,7 +1147,7 @@
             const availableHintEl = document.getElementById('available-balance-hint');
             if (balanceEl) {
                 if (!stateLoaded) {
-                    balanceEl.innerHTML = '<span class="shimmer-bar" style="width:180px; height:1em;"></span>';
+                    balanceEl.innerHTML = '<span class="shimmer-bar" style="width:180px; height:0.55em; border-radius:6px;"></span>';
                 } else {
                     balanceEl.textContent = isHidden ? "••••••••" : formatRupiah(currentBalance);
                 }
@@ -1160,12 +1160,12 @@
         function renderSkeletons() {
             const skItem = `
                 <div class="skeleton-tx">
-                    <div class="sk-icon shimmer-bar" style="width:44px;height:44px;"></div>
+                    <div class="sk-icon shimmer-bar" style="width:40px;height:40px;"></div>
                     <div class="sk-lines">
-                        <span class="shimmer-bar" style="width:140px;"></span>
-                        <span class="shimmer-bar" style="width:90px; height:0.75em;"></span>
+                        <span class="shimmer-bar" style="width:140px; height:0.7em; border-radius:5px;"></span>
+                        <span class="shimmer-bar" style="width:90px; height:0.6em; border-radius:5px;"></span>
                     </div>
-                    <span class="shimmer-bar" style="width:64px; height:0.875em;"></span>
+                    <span class="shimmer-bar" style="width:64px; height:0.65em; border-radius:5px;"></span>
                 </div>`;
             const homeList = document.getElementById('home-history-list');
             const fullList = document.getElementById('full-history-list');
@@ -1480,6 +1480,7 @@
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
+            renderHistory(); // stateLoaded=false → skeleton shimmer tampil SEGERA di riwayat & home
             await initWalletAddress();
             await loadWalletState();
             updateBalanceDisplay();

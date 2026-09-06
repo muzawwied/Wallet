@@ -32,6 +32,11 @@ async function ensureSchema(db) {
   )`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_from ON wallet_transactions (from_addr)`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_to ON wallet_transactions (to_addr)`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_notif_reads (
+    addr TEXT NOT NULL,
+    tx_id INTEGER NOT NULL,
+    PRIMARY KEY (addr, tx_id)
+  )`).run();
 }
 
 function sha256(text) {
@@ -47,8 +52,29 @@ export async function onRequestGet({ request, env }) {
   try {
     await ensureSchema(db);
     const url = new URL(request.url);
-    const address = (url.searchParams.get('address') || '').toLowerCase();
+    const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
     if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+
+    // ---- notifikasi (transaksi terbaru sebagai notif, penanda dibaca per alamat) ----
+    if (url.searchParams.get('action') === 'external_pull') {
+      const acc0 = await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc0) return j({ success: true, data: { notifications: [] } });
+      const rows = await db.prepare(
+        'SELECT id, from_addr, to_addr, amount, note, created_at FROM wallet_transactions WHERE from_addr = ? OR to_addr = ? ORDER BY created_at DESC, id DESC LIMIT 30'
+      ).bind(address, address).all();
+      const reads = await db.prepare('SELECT tx_id FROM wallet_notif_reads WHERE addr = ?').bind(address).all();
+      const readSet = new Set((reads.results || []).map(r => r.tx_id));
+      const notifications = (rows.results || []).map(t => ({
+        id: t.id,
+        source: 'Wallet',
+        message: (t.to_addr === address
+          ? 'Menerima Rp ' + t.amount + ' dari 0x…' + t.from_addr.slice(-6)
+          : 'Mengirim Rp ' + t.amount + ' ke 0x…' + t.to_addr.slice(-6)) + (t.note ? ' — ' + t.note : ''),
+        read: readSet.has(t.id),
+        created_at: t.created_at
+      }));
+      return j({ success: true, data: { notifications } });
+    }
 
     const acc = await db.prepare('SELECT balance FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
@@ -131,6 +157,19 @@ export async function onRequestPost({ request, env }) {
 
       const newBal = await getBalance(db, from);
       return j({ success: true, txid: txid, balance: newBal });
+    }
+
+    // ---- tandai notifikasi dibaca ----
+    if (action === 'external_read') {
+      const addr = String(body.addr || '').toLowerCase();
+      const txId = parseInt(body.id, 10);
+      if (!ADDR_RE.test(addr) || !txId) return j({ error: 'Parameter tidak valid' }, 400);
+      const acc = await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(addr).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      const tx = await db.prepare('SELECT id FROM wallet_transactions WHERE id = ? AND (from_addr = ? OR to_addr = ?)').bind(txId, addr, addr).first();
+      if (!tx) return j({ error: 'Notifikasi tidak ditemukan' }, 404);
+      await db.prepare('INSERT OR IGNORE INTO wallet_notif_reads (addr, tx_id) VALUES (?, ?)').bind(addr, txId).run();
+      return j({ success: true });
     }
 
     return j({ error: 'unknown action' }, 400);

@@ -86,6 +86,17 @@
             color: var(--text-main);
         }
 
+        .shimmer-bar {
+            display: inline-block;
+            height: 0.7em;
+            background: linear-gradient(90deg, rgba(148,163,184,0.12) 25%, rgba(148,163,184,0.28) 50%, rgba(148,163,184,0.12) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 5px;
+            vertical-align: middle;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skeleton-notif { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-bottom: 1px solid rgba(148,163,184,0.1); }
         .notif-section {
             padding: 8px 16px;
             display: flex;
@@ -240,7 +251,9 @@
     </div>
 
     <script>
-        const WALLET_API = 'https://clincoo-be2.pages.dev/api/wallet-sync';
+        const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
+            ? 'https://wallet-43a.pages.dev' : location.origin;
+        const API = WALLET_API + '/api/wallet';
         function getWalletAddr() {
             try { return localStorage.getItem('user_wallet_address') || ''; } catch (e) { return ''; }
         }
@@ -260,6 +273,15 @@
             section.innerHTML = html;
         }
 
+        function renderSkeleton() {
+            const sk = '<div class="skeleton-notif">' +
+                '<span class="shimmer-bar" style="width:120px;"></span>' +
+                '<span class="shimmer-bar" style="width:230px; height:0.6em;"></span>' +
+                '<span class="shimmer-bar" style="width:80px; height:0.55em;"></span>' +
+                '</div>';
+            document.getElementById('notif-section').innerHTML = sk.repeat(5);
+        }
+
         function renderCached() {
             if (!getWalletAddr()) { renderEmpty(); return; }
             try {
@@ -271,6 +293,7 @@
                     return;
                 }
             } catch (e) {}
+            renderSkeleton(); // belum ada cache: shimmer tipis sampai data pertama nyampe
         }
 
         function fmtTime(d) {
@@ -312,7 +335,7 @@
             const section = document.getElementById('notif-section');
             if (!getWalletAddr()) { renderEmpty(); return; }
             try {
-                const res = await fetch(WALLET_API + '?action=external_pull&addr=' + encodeURIComponent(getWalletAddr()));
+                const res = await fetch(API + '?action=external_pull&addr=' + encodeURIComponent(getWalletAddr()));
                 if (!res.ok) { if (!_rendered.length) renderEmpty(); return; }
                 const d = await res.json();
                 const notifs = (d.data && d.data.notifications) || [];
@@ -334,7 +357,7 @@
                 setTimeout(() => { element.style.transform = 'scale(1)'; }, 150);
                 const nid = element.getAttribute('data-id');
                 if (nid) {
-                    fetch(WALLET_API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'external_read', addr: getWalletAddr(), id: parseInt(nid, 10) }) }).catch(function () {});
                 }
             }
