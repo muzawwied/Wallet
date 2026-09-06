@@ -192,6 +192,38 @@
             margin-top: 2px;
         }
 
+        .notif-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px 56px;
+            text-align: center;
+        }
+        .notif-empty-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #38bdf8;
+            margin-bottom: 16px;
+        }
+        .notif-empty-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .notif-empty-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 4px;
+            max-width: 240px;
+            line-height: 1.4;
+        }
+
         .notif-date-group {
             font-size: 0.8rem;
             font-weight: 600;
@@ -240,6 +272,16 @@
             return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + t;
         }
 
+        function emptyMarkup() {
+            return '<div class="notif-empty">' +
+                '<div class="notif-empty-icon">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' +
+                '</div>' +
+                '<span class="notif-empty-title">Belum Ada Notifikasi</span>' +
+                '<span class="notif-empty-desc">Notifikasi Clincoo akan muncul di sini secara real-time.</span>' +
+                '</div>';
+        }
+
         function itemMarkup(n) {
             return '<div class="notif-item' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '" onclick="markAsRead(this)">' +
                 '<div class="notif-content">' +
@@ -280,7 +322,7 @@
                     return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
                 });
                 if (_rendered.length === 0) {
-                    section.innerHTML = '<div class="notif-date-group">Baru</div><div class="notif-item"><div class="notif-content"><span class="notif-title">Belum ada notifikasi</span><span class="notif-desc">Notifikasi Clincoo akan muncul di sini secara real-time.</span><span class="notif-time">Baru saja</span></div></div>';
+                    section.innerHTML = emptyMarkup();
                     return;
                 }
                 const today = _rendered.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });

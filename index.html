@@ -19,6 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
     <style>
         :root {
@@ -1026,7 +1027,7 @@
 
     <script>
         let isHidden = false;
-        let currentBalance = 12500000;
+        let currentBalance = 0;
         let mediaStream = null;
         let currentFilter = 'semua';
         let transactions = [];
@@ -1270,10 +1271,12 @@
             const mins = String(now.getMinutes()).padStart(2, '0');
             const dateText = `Hari ini, ${hrs}:${mins}`;
 
+            const short = targetVal.length > 14 ? targetVal.slice(0, 6) + '...' + targetVal.slice(-4) : targetVal;
+            const noteVal = noteEl ? noteEl.value.trim() : '';
             const newTransaction = {
                 id: Date.now(),
                 type: 'keluar',
-                name: 'Kirim Saldo',
+                name: noteVal ? noteVal + ' - ' + short : 'Kirim ke ' + short,
                 date: dateText,
                 amount: '-' + formatRupiah(amountVal)
             };
@@ -1294,6 +1297,7 @@
         }
 
         function stopCamera() {
+            _scanActive = false;
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
@@ -1317,12 +1321,49 @@
                     mediaStream = stream;
                     video.srcObject = stream;
                     video.play();
+                    _startScanLoop();
                 }).catch(err => {
                     fallback.style.display = 'flex';
                 });
             } else {
                 fallback.style.display = 'flex';
             }
+        }
+
+        // --- Dekode QR dari kamera (real) ---
+        let _scanActive = false;
+        let _scanCanvas = null;
+        function _startScanLoop() {
+            _scanActive = true;
+            requestAnimationFrame(_scanLoop);
+        }
+        function _scanLoop() {
+            if (!_scanActive) return;
+            const video = document.getElementById('scanner-video');
+            if (!video || !video.videoWidth) { requestAnimationFrame(_scanLoop); return; }
+            if (!_scanCanvas) _scanCanvas = document.createElement('canvas');
+            const w = Math.min(480, video.videoWidth);
+            const h = Math.round(w * video.videoHeight / video.videoWidth);
+            _scanCanvas.width = w;
+            _scanCanvas.height = h;
+            const ctx = _scanCanvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(video, 0, 0, w, h);
+            let code = null;
+            try {
+                const img = ctx.getImageData(0, 0, w, h);
+                if (window.jsQR) code = jsQR(img.data, w, h, { inversionAttempts: 'dontInvert' });
+            } catch (e) {}
+            if (code && code.data && code.data.trim()) {
+                _scanActive = false;
+                stopCamera();
+                if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
+                const targetEl = document.getElementById('send-target');
+                if (targetEl) targetEl.value = code.data.trim();
+                switchPage(previousPage || 'transaksi');
+                setTimeout(() => { const amt = document.getElementById('send-amount'); if (amt) amt.focus(); }, 250);
+                return;
+            }
+            requestAnimationFrame(_scanLoop);
         }
 
         function closeScanner() {
