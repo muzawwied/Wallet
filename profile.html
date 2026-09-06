@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2338bdf8'/%3E%3Cpath d='M50 22 L78 50 L50 78 L22 50 Z' fill='%23ffffff'/%3E%3C/svg%3E">
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YR2570ZXEM"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-YR2570ZXEM');
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        .page-view {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .page-view.active {
+            display: flex;
+        }
+
+        .scanner-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 16px 12px;
+            background-color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            margin-left: -4px;
+            border-radius: 50%;
+            transition: opacity 0.2s;
+        }
+        
+        .back-btn:hover {
+            opacity: 0.7;
+        }
+
+        .scanner-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 16px 24px;
+        }
+
+        .profile-avatar-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-blue);
+            overflow: hidden;
+        }
+
+        .avatar-edit-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 28px;
+            height: 28px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.1s ease;
+        }
+
+        .avatar-edit-btn:active {
+            transform: scale(0.9);
+        }
+
+        .profile-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .profile-id {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .profile-section {
+            padding: 8px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            border-bottom-color: transparent;
+        }
+
+        .menu-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #64748b;
+        }
+
+        .menu-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .menu-arrow {
+            color: #cbd5e1;
+        }
+
+        .text-danger {
+            color: #ef4444;
+        }
+
+        .icon-danger {
+            color: #ef4444;
+        }
+
+        .settings-content {
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .form-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input-wrapper:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .form-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-family: inherit;
+            width: 100%;
+            -webkit-appearance: none;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            border: none;
+            outline: none;
+            border-radius: 9999px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+            transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
+        }
+
+        .pin-display {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 32px 0 16px;
+        }
+
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .pin-dot.filled {
+            background-color: var(--accent-blue);
+            transform: scale(1.1);
+        }
+
+        .pin-dot.error {
+            background-color: #ef4444;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px 24px;
+            padding: 0 32px;
+            margin-top: 24px;
+            margin-bottom: 32px;
+        }
+
+        .keypad-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            background-color: #f8fafc;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .keypad-btn:active {
+            background-color: #e2e8f0;
+            transform: scale(0.92);
+        }
+
+        .keypad-btn.empty {
+            background-color: transparent;
+            cursor: default;
+        }
+
+        .keypad-btn.empty:active {
+            transform: none;
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 0 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: var(--accent-blue);
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-blue);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .faq-item {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .faq-question {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        .faq-question span {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .faq-icon {
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .faq-answer-inner {
+            padding: 0 16px 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div id="view-profile" class="page-view active">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="history.back()" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Profil Pengguna</span>
+            </div>
+
+            <div class="profile-header">
+                <div class="profile-avatar-wrapper">
+                    <div class="profile-avatar" id="profile-avatar-display">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <label for="avatar-input" class="avatar-edit-btn" aria-label="Ubah foto profil">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </label>
+                    <input type="file" id="avatar-input" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="profile-name" id="profile-name-text">Nama Pengguna</span>
+                    <input type="text" id="profile-name-input" style="display: none; font-size: 1.25rem; font-weight: 600; color: var(--text-main); border: 1px solid var(--accent-blue); border-radius: 8px; padding: 2px 8px; outline: none; text-align: center; width: 180px;" onblur="saveProfileName()" onkeydown="if(event.key==='Enter') saveProfileName()">
+                    <button class="icon-btn" style="padding: 0; color: var(--text-muted);" onclick="enableNameEdit()" aria-label="Edit nama">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                    <span class="profile-id" id="profile-id-text">ID Pengguna</span>
+                    <button class="icon-btn" style="padding: 0; color: var(--text-muted);" onclick="copyUserId(this)" aria-label="Salin ID Pengguna">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="menu-item" onclick="switchView('view-pin')">
+                    <div class="menu-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <span class="menu-title">Informasi Akun</span>
+                    <div class="menu-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="switchView('view-security')">
+                    <div class="menu-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <span class="menu-title">Keamanan</span>
+                    <div class="menu-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="switchView('view-help')">
+                    <div class="menu-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <span class="menu-title">Pusat Bantuan</span>
+                    <div class="menu-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="window.location.reload()">
+                    <div class="menu-icon icon-danger">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span class="menu-title text-danger">Keluar</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-pin" class="page-view" style="flex: 1;">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="resetPinAndBack()" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Verifikasi Keamanan</span>
+            </div>
+
+            <div class="settings-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding-top: 6vh; padding-bottom: 4vh;">
+                <div>
+                    <div style="text-align: center;">
+                        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Masukkan PIN</h2>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Masukkan 6 digit PIN keamanan Anda</p>
+                    </div>
+
+                    <div class="pin-display" id="pin-dots" style="margin: 24px 0 16px;">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    
+                    <div id="pin-error-msg" class="text-danger" style="text-align: center; font-size: 0.85rem; height: 20px; opacity: 0; transition: opacity 0.2s;">
+                        PIN tidak valid. Coba lagi.
+                    </div>
+                </div>
+
+                <div class="keypad" style="margin-top: 0; margin-bottom: 0;">
+                    <button class="keypad-btn" onclick="addPin('1')">1</button>
+                    <button class="keypad-btn" onclick="addPin('2')">2</button>
+                    <button class="keypad-btn" onclick="addPin('3')">3</button>
+                    <button class="keypad-btn" onclick="addPin('4')">4</button>
+                    <button class="keypad-btn" onclick="addPin('5')">5</button>
+                    <button class="keypad-btn" onclick="addPin('6')">6</button>
+                    <button class="keypad-btn" onclick="addPin('7')">7</button>
+                    <button class="keypad-btn" onclick="addPin('8')">8</button>
+                    <button class="keypad-btn" onclick="addPin('9')">9</button>
+                    <div class="keypad-btn empty"></div>
+                    <button class="keypad-btn" onclick="addPin('0')">0</button>
+                    <button class="keypad-btn" onclick="removePin()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                            <line x1="18" y1="9" x2="12" y2="15"></line>
+                            <line x1="12" y1="9" x2="18" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-info" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Informasi Akun</span>
+            </div>
+
+            <div class="settings-content">
+                <div class="form-group">
+                    <label class="form-label">Identitas</label>
+                    <div class="form-input-wrapper">
+                        <div class="form-input">pengguna@jaringanpribadi</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Kata Sandi</label>
+                    <div class="form-input-wrapper">
+                        <input type="password" class="form-input" id="pwd-field" value="SandiRahasia2026!" readonly style="cursor: default;">
+                        <button class="icon-btn" onclick="togglePassword()">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">PIN Keamanan</label>
+                    <div class="form-input-wrapper">
+                        <div class="form-input" style="font-size: 1.2rem; letter-spacing: 4px; padding-bottom: 12px;">••••••</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Security Key 1</label>
+                    <div class="form-input-wrapper">
+                        <div class="form-input" id="key1" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">aK9#mL2@vP5$xN8*jB4&cW1^yT7!qR0</div>
+                        <button class="icon-btn" onclick="copyText('key1', this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Security Key 2</label>
+                    <div class="form-input-wrapper">
+                        <div class="form-input" id="key2" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">Z3&xV9@pM2$kL5#vN8*jB4&cW1^yT7!</div>
+                        <button class="icon-btn" onclick="copyText('key2', this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Security Key 3</label>
+                    <div class="form-input-wrapper">
+                        <div class="form-input" id="key3" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">Q1^yT7!x9Qp@mZ2$kL5#vN8*jB4&cW1</div>
+                        <button class="icon-btn" onclick="copyText('key3', this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-security" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Keamanan</span>
+            </div>
+
+            <div class="settings-content">
+                <div class="form-group" style="margin-top: 4px;">
+                    <div class="toggle-item">
+                        <div>
+                            <div style="font-size: 0.9rem; font-weight: 500; color: var(--text-main);">Autentikasi 2-Langkah (2FA)</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Aktifkan 2FA</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                    <label class="form-label" style="margin-bottom: 12px; margin-left: 0;">Aktivitas</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background-color: #f8fafc; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                                </svg>
+                                <div>
+                                    <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">Aktivitas Sesi</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Aktif</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-help" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Pusat Bantuan</span>
+                <div style="margin-left: auto; display: flex; align-items: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);">
+                        <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="settings-content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);">Pertanyaan Umum</span>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>Bagaimana cara mereset PIN?</span>
+                        <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">
+                            Anda dapat mereset PIN menggunakan Security Key yang telah diberikan saat pembuatan akun pada perangkat utama Anda.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>Apa itu Security Key?</span>
+                        <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">
+                            Security Key adalah deretan kode unik yang dienkripsi secara statis sebagai akses pemulihan tingkat tertinggi untuk identitas Anda.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>Bagaimana jika akses terkunci?</span>
+                        <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">
+                            Sistem secara otomatis mengunci sesi apabila terjadi kegagalan otentikasi berulang. Akses akan terbuka kembali setelah 24 jam.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 24px;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Pelajari informasi lebih lanjut di </span>
+                    <a href="https://docs.example.com" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--accent-blue); text-decoration: none; font-weight: 500;">Baca Docs</a>
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">Versi Sistem</div>
+                    <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-top: 4px;">v2.1.0-secure</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentPin = '';
+
+        function switchView(viewId, isHistory = false) {
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.add('active');
+                if (!isHistory) {
+                    const pathName = viewId === 'view-profile' ? '/' : '/' + viewId.replace('view-', '');
+                    window.history.pushState({ view: viewId }, '', pathName);
+                }
+            }
+        }
+
+        window.addEventListener('popstate', function(e) {
+            if (e.state && e.state.view) {
+                switchView(e.state.view, true);
+            } else {
+                switchView('view-profile', true);
+            }
+        });
+
+        function resetPinAndBack() {
+            currentPin = '';
+            updatePinDisplay();
+            document.getElementById('pin-error-msg').style.opacity = '0';
+            document.getElementById('pin-dots').classList.remove('shake');
+            switchView('view-profile');
+        }
+
+        function addPin(num) {
+            if (currentPin.length < 6) {
+                currentPin += num;
+                updatePinDisplay();
+                
+                if (currentPin.length === 6) {
+                    setTimeout(verifyPinAction, 150);
+                }
+            }
+        }
+
+        function removePin() {
+            if (currentPin.length > 0) {
+                currentPin = currentPin.slice(0, -1);
+                updatePinDisplay();
+                document.getElementById('pin-error-msg').style.opacity = '0';
+                document.getElementById('pin-dots').classList.remove('shake');
+                
+                const dots = document.querySelectorAll('.pin-dot');
+                dots.forEach(dot => dot.classList.remove('error'));
+            }
+        }
+
+        function updatePinDisplay() {
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach((dot, index) => {
+                if (index < currentPin.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+
+        function verifyPinAction() {
+            if (currentPin === '123456') {
+                currentPin = '';
+                updatePinDisplay();
+                switchView('view-info');
+            } else {
+                const dots = document.querySelectorAll('.pin-dot');
+                dots.forEach(dot => dot.classList.add('error'));
+                
+                const dotsContainer = document.getElementById('pin-dots');
+                dotsContainer.classList.remove('shake');
+                void dotsContainer.offsetWidth;
+                dotsContainer.classList.add('shake');
+                
+                document.getElementById('pin-error-msg').style.opacity = '1';
+                
+                setTimeout(() => {
+                    currentPin = '';
+                    updatePinDisplay();
+                    document.getElementById('pin-error-msg').style.opacity = '0';
+                    dots.forEach(dot => dot.classList.remove('error'));
+                }, 800);
+            }
+        }
+
+        function togglePassword() {
+            const pwd = document.getElementById('pwd-field');
+            const icon = document.getElementById('eye-icon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            } else {
+                pwd.type = 'password';
+                icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
+        }
+
+        function copyText(elementId, btnElement) {
+            const el = document.getElementById(elementId);
+            const text = el.innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            if (btnElement) {
+                const originalIcon = btnElement.innerHTML;
+                btnElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => {
+                    btnElement.innerHTML = originalIcon;
+                }, 1500);
+            }
+        }
+
+        function copyUserId(btnElement) {
+            const text = document.getElementById('profile-id-text').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (btnElement) {
+                const originalIcon = btnElement.innerHTML;
+                btnElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => {
+                    btnElement.innerHTML = originalIcon;
+                }, 1500);
+            }
+        }
+
+        function toggleFaq(element) {
+            const isActive = element.classList.contains('active');
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+                item.querySelector('.faq-answer').style.maxHeight = '0';
+            });
+
+            if (!isActive) {
+                element.classList.add('active');
+                const answer = element.querySelector('.faq-answer');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+            }
+        }
+
+        function createKeys() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            for (let i = 1; i <= 3; i++) {
+                let savedKey = localStorage.getItem('saved_secure_key_' + i);
+                if (!savedKey) {
+                    savedKey = '';
+                    const keyLength = Math.floor(Math.random() * 26) + 25;
+                    for (let j = 0; j < keyLength; j++) {
+                        savedKey += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    localStorage.setItem('saved_secure_key_' + i, savedKey);
+                }
+                const keyElement = document.getElementById('key' + i);
+                if (keyElement) {
+                    keyElement.innerText = savedKey;
+                }
+            }
+        }
+
+        function initProfile() {
+            let savedName = localStorage.getItem('saved_user_name');
+            if (!savedName) {
+                savedName = 'Nama Pengguna';
+            }
+            document.getElementById('profile-name-text').innerText = savedName;
+
+            let savedId = localStorage.getItem('saved_user_id');
+            if (!savedId) {
+                const idLength = Math.floor(Math.random() * 6) + 10;
+                savedId = '';
+                for (let i = 0; i < idLength; i++) {
+                    savedId += Math.floor(Math.random() * 10).toString();
+                }
+                localStorage.setItem('saved_user_id', savedId);
+            }
+            document.getElementById('profile-id-text').innerText = savedId;
+
+            let savedAvatar = localStorage.getItem('saved_user_avatar');
+            if (savedAvatar) {
+                const avatarContainer = document.getElementById('profile-avatar-display');
+                avatarContainer.innerHTML = `<img src="${savedAvatar}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
+            }
+        }
+
+        function enableNameEdit() {
+            const nameText = document.getElementById('profile-name-text');
+            const nameInput = document.getElementById('profile-name-input');
+            nameInput.value = nameText.innerText;
+            nameText.style.display = 'none';
+            nameInput.style.display = 'inline-block';
+            nameInput.focus();
+            nameInput.select();
+        }
+
+        function saveProfileName() {
+            const nameText = document.getElementById('profile-name-text');
+            const nameInput = document.getElementById('profile-name-input');
+            const newName = nameInput.value.trim() || 'Nama Pengguna';
+            nameText.innerText = newName;
+            localStorage.setItem('saved_user_name', newName);
+            nameInput.style.display = 'none';
+            nameText.style.display = 'inline';
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    localStorage.setItem('saved_user_avatar', dataUrl);
+                    const avatarContainer = document.getElementById('profile-avatar-display');
+                    avatarContainer.innerHTML = `<img src="${dataUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        createKeys();
+        initProfile();
+        
+        if (!window.history.state) {
+            window.history.replaceState({ view: 'view-profile' }, '', '/');
+        }
+    </script>
+</body>
+</html>

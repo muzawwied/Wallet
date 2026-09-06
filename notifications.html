@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifikasi</title>
+    
+    <!-- Menambahkan favicon yang sama dengan halaman utama -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2338bdf8'/%3E%3Cpath d='M50 22 L78 50 L50 78 L22 50 Z' fill='%23ffffff'/%3E%3C/svg%3E">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        .scanner-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 16px 12px;
+            background-color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            margin-left: -4px;
+            border-radius: 50%;
+            transition: opacity 0.2s;
+        }
+        
+        .back-btn:hover {
+            opacity: 0.7;
+        }
+
+        .scanner-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .notif-section {
+            padding: 8px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notif-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: transparent;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item:hover {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            border-bottom-color: transparent;
+        }
+
+        .notif-item.unread {
+            background-color: transparent;
+        }
+
+        .notif-item.unread::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 12px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+        }
+
+        .notif-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .notif-item.unread .notif-icon {
+            color: var(--accent-blue);
+        }
+
+        .icon-system { color: #64748b; }
+        .icon-promo { color: #f59e0b; }
+        .icon-success { color: #16a34a; }
+        .icon-alert { color: #ef4444; }
+
+        .notif-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding-right: 12px;
+        }
+
+        .notif-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+
+        .notif-item.unread .notif-title {
+            font-weight: 600;
+        }
+
+        .notif-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        .notif-time {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .notif-date-group {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin: 16px 0 4px 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="scanner-header">
+            <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+            </button>
+            <span class="scanner-title">Notifikasi</span>
+        </div>
+
+        <div class="notif-section">
+            
+            <div class="notif-date-group">Baru</div>
+
+            <div class="notif-item unread" onclick="markAsRead(this)">
+                <div class="notif-content">
+                    <span class="notif-title">Cashback 50% Menantimu! 🎉</span>
+                    <span class="notif-desc">Lakukan transaksi pertamamu hari ini dan dapatkan cashback instan hingga 500.000. S&K berlaku.</span>
+                    <span class="notif-time">2 jam yang lalu</span>
+                </div>
+            </div>
+
+            <div class="notif-item unread" onclick="markAsRead(this)">
+                <div class="notif-content">
+                    <span class="notif-title">Login Baru Terdeteksi</span>
+                    <span class="notif-desc">Akunmu baru saja diakses dari perangkat baru di Jakarta. Abaikan jika ini kamu.</span>
+                    <span class="notif-time">5 jam yang lalu</span>
+                </div>
+            </div>
+
+            <div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>
+
+            <div class="notif-item">
+                <div class="notif-content">
+                    <span class="notif-title">Transfer Berhasil Terselesaikan</span>
+                    <span class="notif-desc">Pengiriman 1.500.000 ke 0x98f7...a1b2 telah berhasil dikonfirmasi.</span>
+                    <span class="notif-time">Kemarin, 14:30</span>
+                </div>
+            </div>
+
+            <div class="notif-item">
+                <div class="notif-content">
+                    <span class="notif-title">Pembaruan Sistem Selesai</span>
+                    <span class="notif-desc">Sistem telah diperbarui ke versi terbaru. Nikmati transaksi yang lebih cepat dan aman!</span>
+                    <span class="notif-time">2 Hari yang lalu</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function markAsRead(element) {
+            if (element.classList.contains('unread')) {
+                element.classList.remove('unread');
+                element.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                }, 150);
+            }
+        }
+    </script>
+</body>
+</html>
