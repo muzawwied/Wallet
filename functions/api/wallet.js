@@ -33,6 +33,12 @@ async function ensureSchema(db) {
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_from ON wallet_transactions (from_addr)`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_to ON wallet_transactions (to_addr)`).run();
   try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`).run(); } catch (e) {}
+  await db.prepare(`CREATE TABLE IF NOT EXISTS google_pending_tokens (
+    nonce TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    name TEXT,
+    created_at DATETIME DEFAULT (datetime('now'))
+  )`).run();
   for (const col of ['email TEXT', 'pin_hash TEXT', 'pin_salt TEXT', 'display_name TEXT', 'failed_logins INTEGER NOT NULL DEFAULT 0', 'locked_until TEXT']) {
     try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN ${col}`).run(); } catch (e) {}
   }
@@ -84,6 +90,10 @@ export async function onRequestGet({ request, env }) {
     const url = new URL(request.url);
     const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
     if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+
+    if (url.searchParams.get('action') === 'google_config') {
+      return j({ configured: !!env.GOOGLE_CLIENT_ID, client_id: env.GOOGLE_CLIENT_ID || '' });
+    }
 
     // ---- notifikasi (transaksi terbaru sebagai notif, penanda dibaca per alamat) ----
     if (url.searchParams.get('action') === 'external_pull') {
@@ -200,6 +210,96 @@ export async function onRequestPost({ request, env }) {
       if (!tx) return j({ error: 'Notifikasi tidak ditemukan' }, 404);
       await db.prepare('INSERT OR IGNORE INTO wallet_notif_reads (addr, tx_id) VALUES (?, ?)').bind(addr, txId).run();
       return j({ success: true });
+    }
+
+    // ===== GOOGLE AUTH: pilih akun Google → PIN (nonce server-side, 10 menit) =====
+    async function getPendingNonce(nonceRaw) {
+      if (!nonceRaw) return null;
+      return await db.prepare("SELECT nonce, email, name FROM google_pending_tokens WHERE nonce = ? AND created_at > datetime('now', '-10 minutes')").bind(String(nonceRaw)).first();
+    }
+
+    if (action === 'google_verify') {
+      const cred = String(body.credential || '');
+      if (!cred) return j({ error: 'Token Google kosong' }, 400);
+      if (!env.GOOGLE_CLIENT_ID) return j({ error: 'Login Google belum dikonfigurasi di server' }, 503);
+      let t;
+      try {
+        const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(cred));
+        if (!r.ok) return j({ error: 'Token Google tidak valid' }, 401);
+        t = await r.json();
+      } catch (e) { return j({ error: 'Gagal memverifikasi ke Google' }, 502); }
+      if (t.aud !== env.GOOGLE_CLIENT_ID) return j({ error: 'Verifikasi Google gagal (aud)' }, 401);
+      if (String(t.email_verified) !== 'true' || !t.email) return j({ error: 'Email Google belum terverifikasi' }, 401);
+      if (Number(t.exp) * 1000 < Date.now()) return j({ error: 'Token Google kedaluwarsa' }, 401);
+      const email = String(t.email).toLowerCase();
+      const name = String(t.name || '').slice(0, 60);
+      const acc = await db.prepare('SELECT address FROM wallet_accounts WHERE email = ?').bind(email).first();
+      const nonce = randomSecret().slice(0, 48);
+      await db.prepare('DELETE FROM google_pending_tokens WHERE email = ?').bind(email).run();
+      await db.prepare("INSERT INTO google_pending_tokens (nonce, email, name) VALUES (?, ?, ?)").bind(nonce, email, name).run();
+      return j({ registered: !!acc, email: email, name: name, nonce: nonce });
+    }
+
+    if (action === 'google_login') {
+      const row = await getPendingNonce(body.nonce);
+      if (!row) return j({ error: 'Sesi Google kedaluwarsa — silakan mulai ulang' }, 401);
+      const email = row.email;
+      const pin = String(body.pin || '');
+      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE email = ?').bind(email).first();
+      if (!acc || !acc.pin_hash || !acc.pin_salt) return j({ error: 'Akun tidak ditemukan — buat PIN dulu' }, 404);
+      if (acc.locked_until && Date.now() < new Date(acc.locked_until + 'Z').getTime()) {
+        return j({ error: 'Akun terkunci sementara. Coba lagi beberapa menit.' }, 423);
+      }
+      if ((await hashPin(pin, acc.pin_salt)) !== acc.pin_hash) {
+        const fails = (acc.failed_logins || 0) + 1;
+        if (fails >= 5) {
+          await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(acc.address).run();
+          await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
+          return j({ error: 'Terlalu banyak percobaan gagal. Akun terkunci 15 menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, acc.address).run();
+        return j({ error: 'PIN salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      const secret = randomSecret();
+      const secretHash = await sha256(secret);
+      await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
+      const p = await db.prepare('SELECT display_name FROM wallet_accounts WHERE address = ?').bind(acc.address).first();
+      await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
+      return j({ success: true, address: acc.address, secret: secret, display_name: (p && p.display_name) || '' });
+    }
+
+    if (action === 'google_register') {
+      const row = await getPendingNonce(body.nonce);
+      if (!row) return j({ error: 'Sesi Google kedaluwarsa — silakan mulai ulang' }, 401);
+      const pin = String(body.pin || '');
+      if (!/^\d{6}$/.test(pin)) return j({ error: 'PIN harus 6 digit angka' }, 400);
+      const email = row.email;
+      const taken = await db.prepare('SELECT address FROM wallet_accounts WHERE email = ?').bind(email).first();
+      if (taken) return j({ error: 'Email sudah terdaftar — masuk dengan PIN Anda' }, 409);
+      const pinSalt = [...new Uint8Array(16)].map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
+      const pinHash = await hashPin(pin, pinSalt);
+      const name = row.name || '';
+
+      const bindAddr = String(body.address || '').toLowerCase();
+      const devSecret = request.headers.get('x-wallet-secret') || '';
+      if (bindAddr && ADDR_RE.test(bindAddr) && devSecret) {
+        const acc = await db.prepare('SELECT secret_hash, email FROM wallet_accounts WHERE address = ?').bind(bindAddr).first();
+        if (acc && acc.secret_hash === await sha256(devSecret) && !acc.email) {
+          await db.prepare('UPDATE wallet_accounts SET email = ?, pin_hash = ?, pin_salt = ?, display_name = COALESCE(NULLIF(display_name, \'\'), ?) WHERE address = ?')
+            .bind(email, pinHash, pinSalt, name, bindAddr).run();
+          await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
+          return j({ success: true, bound: true, address: bindAddr });
+        }
+      }
+
+      let address = randomAddress();
+      while (await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first()) address = randomAddress();
+      const secret = randomSecret();
+      const secretHash = await sha256(secret);
+      await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, pin_hash, pin_salt, display_name) VALUES (?, ?, 0, ?, ?, ?, ?, ?)')
+        .bind(address, secretHash, 'user', email, pinHash, pinSalt, name || null).run();
+      await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
+      return j({ success: true, address: address, secret: secret });
     }
 
     // ===== AUTH: register / login / sinkron profile =====
