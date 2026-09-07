@@ -88,12 +88,12 @@ export async function onRequestGet({ request, env }) {
   try {
     await ensureSchema(db);
     const url = new URL(request.url);
-    const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
-    if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
-
     if (url.searchParams.get('action') === 'google_config') {
       return j({ configured: !!env.GOOGLE_CLIENT_ID, client_id: env.GOOGLE_CLIENT_ID || '' });
     }
+
+    const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
+    if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
 
     // ---- notifikasi (transaksi terbaru sebagai notif, penanda dibaca per alamat) ----
     if (url.searchParams.get('action') === 'external_pull') {

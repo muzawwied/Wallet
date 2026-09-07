@@ -6,3 +6,5 @@
   Cache-Control: no-cache, no-store, must-revalidate
 /profile.html
   Cache-Control: no-cache, no-store, must-revalidate
+/auth.html
+  Cache-Control: no-cache, no-store, must-revalidate
