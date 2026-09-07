@@ -372,6 +372,36 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, address: acc.address, secret });
     }
 
+    if (action === 'pin_verify') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT pin_hash, pin_salt, secret_hash, failed_logins, locked_until FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      if (acc.locked_until) {
+        const lockUntil = new Date(acc.locked_until + 'Z').getTime();
+        if (Date.now() < lockUntil) {
+          const mins = Math.ceil((lockUntil - Date.now()) / 60000);
+          return j({ error: 'Akun terkunci sementara. Coba lagi dalam ' + mins + ' menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET locked_until = NULL, failed_logins = 0 WHERE address = ?').bind(address).run();
+      }
+      if (!acc.pin_hash || !acc.pin_salt) return j({ error: 'Akun ini belum punya PIN — daftar dulu' }, 400);
+      const pin = String(body.pin || '');
+      if ((await hashPin(pin, acc.pin_salt)) !== acc.pin_hash) {
+        const fails = (acc.failed_logins || 0) + 1;
+        if (fails >= 5) {
+          await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(address).run();
+          return j({ error: 'Terlalu banyak percobaan gagal. Akun terkunci 15 menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, address).run();
+        return j({ error: 'PIN salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      await db.prepare('UPDATE wallet_accounts SET failed_logins = 0, locked_until = NULL WHERE address = ?').bind(address).run();
+      return j({ success: true });
+    }
+
     if (action === 'profile_set') {
       const address = String(body.address || '').toLowerCase();
       const name = String(body.display_name || '').trim().slice(0, 40);

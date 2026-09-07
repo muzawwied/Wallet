@@ -599,7 +599,7 @@
                     </div>
                 </div>
 
-                <div class="menu-item" onclick="window.location.reload()">
+                <div class="menu-item" onclick="logoutAkun()">
                     <div class="menu-icon icon-danger">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -887,29 +887,46 @@
             });
         }
 
-        function verifyPinAction() {
-            if (currentPin === '123456') {
+        async function verifyPinAction() {
+            const address = localStorage.getItem('user_wallet_address');
+            const secret = localStorage.getItem('user_wallet_secret');
+            if (!address || !secret) { window.location.href = 'auth.html'; return; }
+            const pin = currentPin;
+            const dots = document.querySelectorAll('.pin-dot');
+            const dotsContainer = document.getElementById('pin-dots');
+            const msgEl = document.getElementById('pin-error-msg');
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': secret },
+                    body: JSON.stringify({ action: 'pin_verify', address: address, pin: pin })
+                });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok || !d.success) throw new Error((d && d.error) || 'PIN tidak valid. Coba lagi.');
                 currentPin = '';
                 updatePinDisplay();
                 switchView('view-info');
-            } else {
-                const dots = document.querySelectorAll('.pin-dot');
+            } catch (e) {
                 dots.forEach(dot => dot.classList.add('error'));
-                
-                const dotsContainer = document.getElementById('pin-dots');
                 dotsContainer.classList.remove('shake');
                 void dotsContainer.offsetWidth;
                 dotsContainer.classList.add('shake');
-                
-                document.getElementById('pin-error-msg').style.opacity = '1';
-                
+                msgEl.textContent = e.message;
+                msgEl.style.opacity = '1';
                 setTimeout(() => {
                     currentPin = '';
                     updatePinDisplay();
-                    document.getElementById('pin-error-msg').style.opacity = '0';
+                    msgEl.style.opacity = '0';
                     dots.forEach(dot => dot.classList.remove('error'));
-                }, 800);
+                }, 900);
             }
+        }
+
+        function logoutAkun() {
+            ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name'].forEach(function (k) {
+                localStorage.removeItem(k);
+            });
+            window.location.href = 'auth.html';
         }
 
         function togglePassword() {
