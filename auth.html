@@ -555,36 +555,6 @@
             }
         }
 
-        async function doAuth(mode) {
-            const email = (document.getElementById('auth-email').value || '').trim().toLowerCase();
-            const pin = document.getElementById('auth-pin').value || '';
-            const errEl = document.getElementById('auth-error');
-            errEl.textContent = '';
-            if (!email) { showToast('Masukkan email Anda', 'error'); return; }
-            if (!/^\d{6}$/.test(pin)) { showToast('PIN harus 6 digit angka', 'error'); return; }
-            const btns = document.querySelectorAll('.btn-submit');
-            btns.forEach(b => { b.disabled = true; });
-            switchAuthView('loading');
-            try {
-                let payload = { email: email, pin: pin };
-                let headers = {};
-                if (mode === 'register') {
-                    payload.action = 'auth_register';
-                    const addr = localStorage.getItem('user_wallet_address') || '';
-                    const sec = localStorage.getItem('user_wallet_secret') || '';
-                    if (addr && sec) { payload.address = addr; headers['x-wallet-secret'] = sec; }
-                } else {
-                    payload.action = 'auth_login';
-                }
-                const res = await callApi(payload, headers);
-                saveLocalAndGo(res.address, res.secret, gEmail || ''); // → halaman utama
-            } catch (e) {
-                switchAuthView('google');
-                errEl.textContent = e.message;
-                showToast(e.message, 'error');
-                btns.forEach(b => { b.disabled = false; });
-            }
-        }
 
         loadGoogle();
     </script>
