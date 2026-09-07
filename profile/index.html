@@ -836,6 +836,15 @@
                         }
                     }
                 }).catch(function () {});
+
+            // Daftarkan ID tampilan ke backend — dipakai ClincooPay untuk mencari dompet
+            try {
+                var did = getWalletDisplayId();
+                if (did && /^[A-Za-z0-9]{10}$/.test(did)) {
+                    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'register_display_id', address: addr, secret: (localStorage.getItem('user_wallet_secret') || ''), display_id: did }) }).catch(function () {});
+                }
+            } catch (e) {}
         }
 
         function initProfile() {

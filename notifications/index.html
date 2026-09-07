@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://wallet-muz.pages.dev https://www.googletagmanager.com https://*.google-analytics.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <script>if (top !== self) top.location = self.location;</script>
-
     <script>
     // Pagar dini: belum login → sembunyikan halaman & lempar ke auth SEBELUM konten tampil
     (function () {
@@ -357,18 +353,38 @@
                 '</div>';
         }
 
-        function escapeHtml(v) {
-            return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
-                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-            });
+        function connectReqMarkup(r) {
+            return '<div class="notif-item" data-req="' + r.id + '" style="cursor: default;">' +
+                '<div class="notif-content">' +
+                '<span class="notif-title">' + (r.app || 'ClincooPay') + '</span>' +
+                '<span class="notif-desc">' + (r.app || 'ClincooPay') + ' ingin terhubung ke dompet kamu. Konfirmasi untuk melanjutkan penghubungan.</span>' +
+                '<span class="notif-time">' + fmtTime(r.created_at) + '</span>' +
+                '<div style="display:flex; gap:8px; margin-top:10px;">' +
+                '<button type="button" onclick="event.stopPropagation(); respondConnect(\'' + r.id + '\', \'connect_confirm\')" style="flex:1; padding:9px 12px; border:none; border-radius:10px; background:#0f172a; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">Konfirmasi</button>' +
+                '<button type="button" onclick="event.stopPropagation(); respondConnect(\'' + r.id + '\', \'connect_reject\')" style="flex:1; padding:9px 12px; border:1px solid #e2e8f0; border-radius:10px; background:transparent; color:#64748b; font-size:12px; font-weight:600; cursor:pointer;">Tolak</button>' +
+                '</div>' +
+                '</div></div>';
+        }
+
+        async function respondConnect(rid, act) {
+            const secret = localStorage.getItem('user_wallet_secret') || '';
+            const btns = document.querySelectorAll('[data-req="' + rid + '"]');
+            btns.forEach(function (b) { b.style.opacity = '0.55'; b.style.pointerEvents = 'none'; });
+            try {
+                const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: act, request_id: rid, address: getWalletAddr(), secret: secret }) });
+                const d = await res.json();
+                if (d && d.success) { pullNotifs(); return; }
+            } catch (e) {}
+            btns.forEach(function (b) { b.style.opacity = '1'; b.style.pointerEvents = 'auto'; });
         }
 
         function itemMarkup(n) {
             return '<div class="notif-item' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '" onclick="markAsRead(this)">' +
                 '<div class="notif-content">' +
-                '<span class="notif-title">' + escapeHtml(n.title || '') + '</span>' +
-                '<span class="notif-desc">' + escapeHtml(n.desc || '') + '</span>' +
-                '<span class="notif-time">' + escapeHtml(n.time || '') + '</span>' +
+                '<span class="notif-title">' + (n.title || '') + '</span>' +
+                '<span class="notif-desc">' + (n.desc || '') + '</span>' +
+                '<span class="notif-time">' + (n.time || '') + '</span>' +
                 '</div></div>';
         }
 
@@ -384,13 +400,22 @@
                 if (!res.ok) { if (!_rendered.length) renderEmpty(); return; }
                 const d = await res.json();
                 const notifs = (d.data && d.data.notifications) || [];
-                const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; }));
+                const reqs = (d.data && d.data.connect_requests) || [];
+                const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; })) + '|' + JSON.stringify(reqs);
                 if (snap === _lastSnap) return;
                 _lastSnap = snap;
                 _rendered = notifs.map(function (n) {
                     return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
                 });
-                renderList(_rendered);
+                const reqHtml = reqs.map(connectReqMarkup).join('');
+                if (reqHtml) {
+                    const section = document.getElementById('notif-section');
+                    renderList(_rendered);
+                    if (section && !_rendered.length) section.innerHTML = emptyMarkup();
+                    if (section) section.insertAdjacentHTML('afterbegin', '<div class="notif-date-group">Permintaan Koneksi</div>' + reqHtml);
+                } else {
+                    renderList(_rendered);
+                }
                 try { localStorage.setItem(CACHE_KEY, JSON.stringify({ snap: snap, items: _rendered })); } catch (e) {}
             } catch (e) { if (!_rendered.length) renderEmpty(); }
         }

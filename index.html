@@ -1126,6 +1126,15 @@
                     return;
                 }
             } catch (e) {}
+
+            // Daftarkan ID tampilan (profil) ke backend — dipakai ClincooPay untuk mencari dompet
+            try {
+                let did = localStorage.getItem('wallet_display_id');
+                if (did && /^[A-Za-z0-9]{10}$/.test(did)) {
+                    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'register_display_id', address: savedAddress, secret: walletSecret, display_id: did }) }).catch(function () {});
+                }
+            } catch (e) {}
             
             walletAddress = savedAddress;
             
