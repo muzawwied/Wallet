@@ -1063,6 +1063,11 @@
             let savedAddress = localStorage.getItem('user_wallet_address');
             let savedSecret = localStorage.getItem('user_wallet_secret');
 
+            if (savedAddress === 'undefined' || savedAddress === 'null' || savedSecret === 'undefined' || savedSecret === 'null') {
+                localStorage.removeItem('user_wallet_address');
+                localStorage.removeItem('user_wallet_secret');
+                localStorage.removeItem('user_logged_in');
+            }
             if (!savedAddress || !savedSecret) {
                 window.location.replace('auth.html'); // belum login → ke halaman login
                 return;

@@ -1,10 +1,2 @@
-/
-  Cache-Control: no-cache, no-store, must-revalidate
-/index.html
-  Cache-Control: no-cache, no-store, must-revalidate
-/notifications.html
-  Cache-Control: no-cache, no-store, must-revalidate
-/profile.html
-  Cache-Control: no-cache, no-store, must-revalidate
-/auth.html
-  Cache-Control: no-cache, no-store, must-revalidate
+/*
+  Cache-Control: no-cache, must-revalidate

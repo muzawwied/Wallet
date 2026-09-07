@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClincooPay — Autentikasi</title>
     
@@ -462,6 +463,11 @@
         }
 
         function saveLocalAndGo(address, secret, name) {
+            if (!/^0x[0-9a-f]{40}$/.test(String(address || ''))) {
+                switchAuthView('google');
+                showToast('Sesi tidak valid, silakan pilih akun Google lagi.', 'error');
+                return;
+            }
             localStorage.setItem('user_wallet_address', address);
             localStorage.setItem('user_logged_in', '1');
             if (secret) localStorage.setItem('user_wallet_secret', secret);
