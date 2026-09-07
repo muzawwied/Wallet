@@ -981,9 +981,15 @@
         // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
         (function requireAuth() {
             try {
-                const a = localStorage.getItem('user_wallet_address');
-                const s = localStorage.getItem('user_wallet_secret');
-                if (!a || !s || localStorage.getItem('user_logged_in') !== '1') { window.location.replace('auth.html'); throw new Error('redirect'); }
+                var bad = function (v) { return !v || v === 'undefined' || v === 'null'; };
+                var a = localStorage.getItem('user_wallet_address');
+                var s = localStorage.getItem('user_wallet_secret');
+                if (bad(a) || bad(s) || localStorage.getItem('user_logged_in') !== '1') {
+                    localStorage.removeItem('user_wallet_address');
+                    localStorage.removeItem('user_wallet_secret');
+                    localStorage.removeItem('user_logged_in');
+                    window.location.replace('auth.html'); throw new Error('redirect');
+                }
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
         const API_BASE = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
