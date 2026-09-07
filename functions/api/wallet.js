@@ -89,6 +89,9 @@ export async function onRequestGet({ request, env }) {
   try {
     await ensureSchema(db);
     const url = new URL(request.url);
+    if (url.searchParams.get('action') === 'ping') {
+      return j({ ok: true, t: Date.now() });
+    }
     if (url.searchParams.get('action') === 'google_config') {
       return j({ configured: !!env.GOOGLE_CLIENT_ID, client_id: env.GOOGLE_CLIENT_ID || '' });
     }
