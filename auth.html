@@ -360,7 +360,7 @@
 
         <!-- View 1: Google Login -->
         <div id="view-google" class="auth-view active">
-            <div id="google-btn-container" style="min-height: 44px;"></div>
+            <div id="google-btn-container" style="min-height: 44px; width: 100%; display: flex; justify-content: center;"></div>
             <p id="google-fallback-note" style="display: none; color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: 6px 0 0;">Login Google belum aktif sebentar — muat ulang halaman beberapa saat lagi.</p>
 
 
@@ -493,7 +493,7 @@
                             auto_select: false
                         });
                         google.accounts.id.renderButton(document.getElementById('google-btn-container'),
-                            { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 320, locale: 'id' });
+                            { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: (window.innerWidth > 600 ? 400 : 300), locale: 'id' });
                     };
                     document.head.appendChild(gs);
                 } else {
