@@ -33,11 +33,40 @@ async function ensureSchema(db) {
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_from ON wallet_transactions (from_addr)`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_to ON wallet_transactions (to_addr)`).run();
   try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`).run(); } catch (e) {}
+  for (const col of ['email TEXT', 'pin_hash TEXT', 'pin_salt TEXT', 'display_name TEXT', 'failed_logins INTEGER NOT NULL DEFAULT 0', 'locked_until TEXT']) {
+    try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN ${col}`).run(); } catch (e) {}
+  }
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_notif_reads (
     addr TEXT NOT NULL,
     tx_id INTEGER NOT NULL,
     PRIMARY KEY (addr, tx_id)
   )`).run();
+}
+
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+
+async function hashPin(pin, saltHex) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: hexToBytes(saltHex), iterations: 100000 }, key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function randomAddress() {
+  const bytes = new Uint8Array(20);
+  crypto.getRandomValues(bytes);
+  return '0x' + [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function randomSecret() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function sha256(text) {
@@ -77,7 +106,7 @@ export async function onRequestGet({ request, env }) {
       return j({ success: true, data: { notifications } });
     }
 
-    const acc = await db.prepare('SELECT balance FROM wallet_accounts WHERE address = ?').bind(address).first();
+    const acc = await db.prepare('SELECT balance, display_name, email FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
 
     const txs = await db.prepare(
@@ -96,7 +125,7 @@ export async function onRequestGet({ request, env }) {
       amount: t.amount
     }));
 
-    return j({ success: true, address: address, balance: acc.balance, transactions: history });
+    return j({ success: true, address: address, balance: acc.balance, display_name: acc.display_name || '', email: acc.email || '', transactions: history });
   } catch (err) {
     return j({ error: err.message }, 500);
   }
@@ -171,6 +200,82 @@ export async function onRequestPost({ request, env }) {
       if (!tx) return j({ error: 'Notifikasi tidak ditemukan' }, 404);
       await db.prepare('INSERT OR IGNORE INTO wallet_notif_reads (addr, tx_id) VALUES (?, ?)').bind(addr, txId).run();
       return j({ success: true });
+    }
+
+    // ===== AUTH: register / login / sinkron profile =====
+    if (action === 'auth_register') {
+      const email = String(body.email || '').trim().toLowerCase();
+      const pin = String(body.pin || '');
+      if (!EMAIL_RE.test(email)) return j({ error: 'Format email tidak valid' }, 400);
+      if (!/^\d{6}$/.test(pin)) return j({ error: 'PIN harus 6 digit angka' }, 400);
+      const taken = await db.prepare('SELECT address FROM wallet_accounts WHERE email = ?').bind(email).first();
+      if (taken) return j({ error: 'Email sudah terdaftar — silakan masuk' }, 409);
+      const pinSalt = [...new Uint8Array(16)].map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
+      const pinHash = await hashPin(pin, pinSalt);
+
+      // opsi 1: ikat email+PIN ke dompet yang sudah ada di perangkat ini (saldo tetap)
+      const bindAddr = String(body.address || '').toLowerCase();
+      const devSecret = request.headers.get('x-wallet-secret') || '';
+      if (bindAddr && ADDR_RE.test(bindAddr) && devSecret) {
+        const acc = await db.prepare('SELECT address, secret_hash, email FROM wallet_accounts WHERE address = ?').bind(bindAddr).first();
+        if (acc && acc.secret_hash === await sha256(devSecret) && !acc.email) {
+          await db.prepare('UPDATE wallet_accounts SET email = ?, pin_hash = ?, pin_salt = ? WHERE address = ?').bind(email, pinHash, pinSalt, bindAddr).run();
+          return j({ success: true, bound: true, address: bindAddr });
+        }
+        if (acc && acc.email) return j({ error: 'Dompet ini sudah terikat ke email lain' }, 409);
+      }
+
+      // opsi 2: akun baru
+      let address = randomAddress();
+      while (await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first()) address = randomAddress();
+      const secret = randomSecret();
+      const secretHash = await sha256(secret);
+      await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, pin_hash, pin_salt) VALUES (?, ?, 0, ?, ?, ?, ?)')
+        .bind(address, secretHash, 'user', email, pinHash, pinSalt).run();
+      return j({ success: true, address, secret });
+    }
+
+    if (action === 'auth_login') {
+      const email = String(body.email || '').trim().toLowerCase();
+      const pin = String(body.pin || '');
+      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE email = ?').bind(email).first();
+      if (!acc) return j({ error: 'Email atau PIN salah' }, 401);
+      if (acc.locked_until) {
+        const lockUntil = new Date(acc.locked_until + 'Z').getTime();
+        if (Date.now() < lockUntil) {
+          const mins = Math.ceil((lockUntil - Date.now()) / 60000);
+          return j({ error: 'Akun terkunci sementara. Coba lagi dalam ' + mins + ' menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET locked_until = NULL, failed_logins = 0 WHERE address = ?').bind(acc.address).run();
+      }
+      if (!acc.pin_hash || !acc.pin_salt) return j({ error: 'Akun ini belum punya PIN — daftar dulu' }, 400);
+      const ok = (await hashPin(pin, acc.pin_salt)) === acc.pin_hash;
+      if (!ok) {
+        const fails = (acc.failed_logins || 0) + 1;
+        if (fails >= 5) {
+          await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(acc.address).run();
+          return j({ error: 'Terlalu banyak percobaan gagal. Akun terkunci 15 menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, acc.address).run();
+        return j({ error: 'Email atau PIN salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      // sukses: rotasi kunci perangkat (sesi perangkat lama otomatis keluar)
+      const secret = randomSecret();
+      const secretHash = await sha256(secret);
+      await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
+      return j({ success: true, address: acc.address, secret });
+    }
+
+    if (action === 'profile_set') {
+      const address = String(body.address || '').toLowerCase();
+      const name = String(body.display_name || '').trim().slice(0, 40);
+      if (!ADDR_RE.test(address) || !name) return j({ error: 'Parameter tidak valid' }, 400);
+      const secret = request.headers.get('x-wallet-secret') || '';
+      const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || acc.secret_hash !== await sha256(secret)) return j({ error: 'Kunci dompet tidak cocok' }, 403);
+      await db.prepare('UPDATE wallet_accounts SET display_name = ? WHERE address = ?').bind(name, address).run();
+      return j({ success: true, display_name: name });
     }
 
     // ===== SISTEM ADMIN/OWNER (backend-only, digerbangi x-admin-secret dari env) =====

@@ -1030,6 +1030,25 @@
             }
         }
 
+        const API_BASE = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
+            ? 'https://wallet-43a.pages.dev' : location.origin;
+        const API = API_BASE + '/api/wallet';
+
+        function syncProfileFromServer() {
+            const addr = localStorage.getItem('user_wallet_address');
+            if (!addr) return;
+            fetch(API + '?action=state&address=' + encodeURIComponent(addr))
+                .then(r => r.json()).then(d => {
+                    if (d && d.success) {
+                        if (d.display_name) {
+                            document.getElementById('profile-name-text').innerText = d.display_name;
+                            localStorage.setItem('saved_user_name', d.display_name);
+                        }
+                        document.getElementById('profile-id-text').innerText = d.email || ('0x…' + addr.slice(-6));
+                    }
+                }).catch(function () {});
+        }
+
         function initProfile() {
             let savedName = localStorage.getItem('saved_user_name');
             if (!savedName) {
@@ -1039,11 +1058,7 @@
 
             let savedId = localStorage.getItem('saved_user_id');
             if (!savedId) {
-                const idLength = Math.floor(Math.random() * 6) + 10;
-                savedId = '';
-                for (let i = 0; i < idLength; i++) {
-                    savedId += Math.floor(Math.random() * 10).toString();
-                }
+                savedId = walletAddr ? '0x…' + walletAddr.slice(-6) : 'Tanpa alamat';
                 localStorage.setItem('saved_user_id', savedId);
             }
             document.getElementById('profile-id-text').innerText = savedId;
@@ -1077,6 +1092,13 @@
             localStorage.setItem('saved_user_name', newName);
             nameInput.style.display = 'none';
             nameText.style.display = 'inline';
+            // sinkron ke server (butuh alamat + kunci perangkat)
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (addr && sec) {
+                fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                    body: JSON.stringify({ action: 'profile_set', address: addr, display_name: newName }) }).catch(function () {});
+            }
         }
 
         function handleAvatarUpload(event) {
@@ -1095,6 +1117,7 @@
         
         createKeys();
         initProfile();
+        syncProfileFromServer();
         
         if (!window.history.state) {
             window.history.replaceState({ view: 'view-profile' }, '', _BASE + '/profile.html');

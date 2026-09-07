@@ -350,15 +350,36 @@
 
         <!-- View 1: Google Login -->
         <div id="view-google" class="auth-view active">
-            <button type="button" class="btn-google" onclick="handleGoogleLogin()">
+            <button type="button" class="btn-google" disabled style="opacity:0.55; cursor:not-allowed;">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
                     <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                     <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
                     <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
                     <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                 </svg>
-                <span id="google-btn-text">Lanjutkan dengan Google</span>
+                <span id="google-btn-text">Google — Segera Hadir</span>
             </button>
+
+            <form onsubmit="return false;" style="display: flex; flex-direction: column; gap: 14px; margin-top: 22px;">
+                <div class="form-group">
+                    <label class="form-label" for="auth-email">Email</label>
+                    <div class="form-input-wrapper">
+                        <input type="email" id="auth-email" class="form-input" placeholder="nama@email.com" autocomplete="email" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="auth-pin">PIN (6 digit)</label>
+                    <div class="form-input-wrapper">
+                        <input type="password" id="auth-pin" class="form-input" placeholder="••••••" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="letter-spacing: 8px; font-size: 1.2rem; text-align: center;">
+                    </div>
+                </div>
+                <span id="auth-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-submit" style="flex: 1;" onclick="doAuth('login')">Masuk</button>
+                    <button type="button" class="btn-submit" style="flex: 1;" onclick="doAuth('register')">Buat Akun</button>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.78rem; text-align: center; margin: 0;">"Buat Akun" mengikat email+PIN ke dompet perangkat ini (saldo aman). Login di perangkat mana pun memulihkan akses — sesi perangkat lama otomatis keluar.</p>
+            </form>
 
             <p class="terms-note" style="margin-top: 16px;">
                 Dengan melanjutkan, Anda menyetujui <a href="#">Syarat & Ketentuan</a> serta <a href="#">Kebijakan Privasi</a> kami.
@@ -369,160 +390,110 @@
         <div id="view-loading" class="auth-view">
             <div class="loading-screen">
                 <div class="spinner"></div>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Menghubungkan ke layanan Google...</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Menghubungkan ke server Wallet...</p>
             </div>
         </div>
 
-        <!-- View 3: Simulasi Pilih Akun Google -->
-        <div id="view-account-chooser" class="auth-view">
-            <div style="background-color: #f0f9ff; border: 1px dashed #bae6fd; padding: 12px; border-radius: 12px; margin-bottom: 16px; font-size: 0.82rem; color: #0284c7; text-align: center;">
-                <b>Simulasi:</b> Pilih tipe akun untuk melihat perbedaan alur.
-            </div>
-            
-            <!-- Simulasi Akun yang sudah terdaftar -->
-            <div class="account-item" onclick="selectAccount('registered')">
-                <div class="account-avatar">D</div>
-                <div class="account-info">
-                    <div class="account-name">Dina Oktavia</div>
-                    <div class="account-email">dina.oktavia@gmail.com</div>
-                </div>
-            </div>
-
-            <!-- Simulasi Akun yang belum terdaftar -->
-            <div class="account-item" onclick="selectAccount('unregistered')">
-                <div class="account-avatar new">B</div>
-                <div class="account-info">
-                    <div class="account-name">Budi Santoso</div>
-                    <div class="account-email">budi.santoso@gmail.com</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- View 4: Buat PIN (Untuk Pengguna Baru) -->
-        <div id="view-create-pin" class="auth-view">
-            <form onsubmit="handleCreatePin(event)" style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="form-group">
-                    <label class="form-label" for="new-pin">Buat PIN Keamanan</label>
-                    <div class="form-input-wrapper">
-                        <div class="icon-prefix">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                        </div>
-                        <input type="password" id="new-pin" class="form-input" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" required style="letter-spacing: 8px; font-size: 1.2rem; text-align: center;">
-                    </div>
-                </div>
-                <button type="submit" class="btn-submit">
-                    <span>Simpan PIN & Lanjutkan</span>
-                </button>
-            </form>
-        </div>
-
-    </div>
-
-    <!-- Toast Modal Notification -->
+        <!-- Toast Modal Notification -->
     <div id="toast-message" class="toast-msg">
         <span id="toast-icon"></span>
         <span id="toast-text">Pesan pemberitahuan</span>
     </div>
 
     <script>
+        const API_BASE = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
+            ? 'https://wallet-43a.pages.dev' : location.origin;
+        const API = API_BASE + '/api/wallet';
+
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast-message');
             const toastText = document.getElementById('toast-text');
             const toastIcon = document.getElementById('toast-icon');
-
             if (!toast) return;
-
             toastText.textContent = message;
-
-            if (type === 'success') {
+            if (type === 'error') {
+                toastIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+            } else {
                 toastIcon.innerHTML = `<svg class="toast-icon-success" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
             }
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
         function switchAuthView(viewName) {
             document.querySelectorAll('.auth-view').forEach(view => view.classList.remove('active'));
-            const targetView = document.getElementById('view-' + viewName);
-            if (targetView) targetView.classList.add('active');
-
+            const target = document.getElementById('view-' + viewName);
+            if (target) target.classList.add('active');
             const titleEl = document.getElementById('auth-title-text');
             const subTitleEl = document.getElementById('auth-subtitle-text');
-
-            if (viewName === 'google') {
-                titleEl.textContent = 'Selamat Datang';
-                subTitleEl.textContent = 'Lanjutkan dengan akun Google Anda untuk mengakses Saldo Digital dengan aman.';
-            } else if (viewName === 'loading') {
+            if (viewName === 'loading') {
                 titleEl.textContent = 'Memproses...';
                 subTitleEl.textContent = 'Mohon tunggu sebentar.';
-            } else if (viewName === 'account-chooser') {
-                titleEl.textContent = 'Pilih Akun';
-                subTitleEl.textContent = 'Pilih akun Google Anda untuk melanjutkan ke aplikasi.';
-            } else if (viewName === 'create-pin') {
-                titleEl.textContent = 'Amankan Akun Anda';
-                subTitleEl.textContent = 'Buat 6 digit PIN untuk keamanan transaksi Anda.';
+            } else {
+                titleEl.textContent = 'Selamat Datang';
+                subTitleEl.textContent = 'Masuk atau buat akun dengan email & PIN untuk mengamankan dompet Anda di semua perangkat.';
             }
         }
 
-        function handleGoogleLogin() {
-            // Langsung pindah ke simulasi loading kosong
-            switchAuthView('loading');
-
-            // Simulasi delay menuju pop-up pilih akun Google (1.2 detik)
-            setTimeout(() => {
-                switchAuthView('account-chooser');
-            }, 1200);
+        async function callApi(payload, headers) {
+            const res = await fetch(API, {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
+                body: JSON.stringify(payload)
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error((d && d.error) || 'Gagal terhubung ke server');
+            return d;
         }
 
-        function selectAccount(type) {
+        async function doAuth(mode) {
+            const email = (document.getElementById('auth-email').value || '').trim().toLowerCase();
+            const pin = document.getElementById('auth-pin').value || '';
+            const errEl = document.getElementById('auth-error');
+            errEl.textContent = '';
+            if (!email) { showToast('Masukkan email Anda', 'error'); return; }
+            if (!/^\d{6}$/.test(pin)) { showToast('PIN harus 6 digit angka', 'error'); return; }
+
+            const btns = document.querySelectorAll('.btn-submit');
+            btns.forEach(b => { b.disabled = true; });
             switchAuthView('loading');
-            
-            // Simulasi memproses akun yang dipilih
-            setTimeout(() => {
-                if (type === 'registered') {
-                    showToast('Autentikasi berhasil! Mengalihkan...', 'success');
-                    setTimeout(() => {
-                        // Safe state navigation fallback since index.html might not exist yet in sandbox
-                        window.location.hash = '#dashboard';
-                        document.body.innerHTML = `
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Outfit', sans-serif; text-align: center; padding: 20px;">
-                                <div style="font-size: 3rem; margin-bottom: 16px;">🎉</div>
-                                <h1 style="color: #0f172a; margin-bottom: 8px;">Berhasil Masuk ke Halaman Utama</h1>
-                                <p style="color: #64748b; margin-bottom: 24px;">Selamat datang kembali di Saldo Digital Anda!</p>
-                                <button onclick="window.location.reload()" style="background-color: #38bdf8; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: 600; cursor: pointer;">Keluar / Kembali</button>
-                            </div>
-                        `;
-                    }, 1200);
-                } else if (type === 'unregistered') {
-                    showToast('Akun baru terdeteksi. Silakan buat PIN.', 'success');
-                    switchAuthView('create-pin'); // Ke Halaman Buat PIN
+            try {
+                let payload = { email: email, pin: pin };
+                let headers = {};
+                if (mode === 'register') {
+                    payload.action = 'auth_register';
+                    const addr = localStorage.getItem('user_wallet_address') || '';
+                    const sec = localStorage.getItem('user_wallet_secret') || '';
+                    if (addr && sec) { payload.address = addr; headers['x-wallet-secret'] = sec; }
+                } else {
+                    payload.action = 'auth_login';
                 }
-            }, 1500);
-        }
-
-        function handleCreatePin(event) {
-            event.preventDefault(); // Mencegah reload halaman
-            const pin = document.getElementById('new-pin').value;
-            
-            if (pin.length === 6) {
-                showToast('PIN berhasil disimpan! Mengalihkan...', 'success');
-                setTimeout(() => {
-                    document.body.innerHTML = `
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Outfit', sans-serif; text-align: center; padding: 20px;">
-                            <div style="font-size: 3rem; margin-bottom: 16px;">🎉</div>
-                            <h1 style="color: #0f172a; margin-bottom: 8px;">Akun & PIN Berhasil Dibuat!</h1>
-                            <p style="color: #64748b; margin-bottom: 24px;">Selamat datang di dompet digital baru Anda.</p>
-                            <button onclick="window.location.reload()" style="background-color: #38bdf8; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: 600; cursor: pointer;">Keluar / Kembali</button>
-                        </div>
-                    `;
-                }, 1500);
+                const res = await callApi(payload, headers);
+                if (res.secret) {
+                    localStorage.setItem('user_wallet_address', res.address);
+                    localStorage.setItem('user_wallet_secret', res.secret);
+                } else if (res.address) {
+                    localStorage.setItem('user_wallet_address', res.address);
+                }
+                localStorage.setItem('saved_user_name', localStorage.getItem('saved_user_name') || email.split('@')[0]);
+                showToast(mode === 'register' ? 'Akun tersinkron! Mengalihkan...' : 'Berhasil masuk! Mengalihkan...', 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 900);
+            } catch (e) {
+                switchAuthView('google');
+                errEl.textContent = e.message;
+                showToast(e.message, 'error');
+                btns.forEach(b => { b.disabled = false; });
             }
         }
+
+        // kalau perangkat ini sudah punya dompet, info di form
+        (function () {
+            const addr = localStorage.getItem('user_wallet_address');
+            if (addr) {
+                const note = document.querySelector('#view-google form p');
+                if (note) note.textContent = 'Dompet perangkat ini (0x…' + addr.slice(-6) + ') akan diikat ke email Anda saat "Buat Akun".';
+            }
+        })();
     </script>
 </body>
 </html>
