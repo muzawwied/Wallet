@@ -8,7 +8,7 @@
             var v = function (k) { var x = localStorage.getItem(k); return (!x || x === 'undefined' || x === 'null') ? null : x; };
             if (!v('user_wallet_address') || !v('user_wallet_secret') || localStorage.getItem('user_logged_in') !== '1') {
                 document.documentElement.style.display = 'none';
-                location.replace('/auth.html');
+                location.replace((location.hostname.indexOf('github.io') !== -1 ? '/Wallet/' : '/') + 'auth.html');
             }
         } catch (e) {}
     })();
@@ -1051,6 +1051,8 @@
     <script>
         let isHidden = false;
         let currentBalance = 0;
+        // Base path: GitHub Pages hidup di /Wallet/, Cloudflare Pages di root
+        const SITE_BASE = (location.hostname.indexOf('github.io') !== -1) ? '/Wallet/' : '/';
         let stateLoaded = false;
         let mediaStream = null;
         let currentFilter = 'semua';
@@ -1071,7 +1073,7 @@
                     localStorage.removeItem('user_wallet_address');
                     localStorage.removeItem('user_wallet_secret');
                     localStorage.removeItem('user_logged_in');
-                    window.location.replace('/auth.html'); throw new Error('redirect');
+                    window.location.replace(SITE_BASE + 'auth.html'); throw new Error('redirect');
                 }
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
@@ -1095,7 +1097,7 @@
                 localStorage.removeItem('user_logged_in');
             }
             if (!savedAddress || !savedSecret) {
-                window.location.replace('/auth.html'); // belum login → ke halaman login
+                window.location.replace(SITE_BASE + 'auth.html'); // belum login → ke halaman login
                 return;
             }
             walletSecret = savedSecret || '';
@@ -1183,6 +1185,7 @@
                         date: fmtTime(t.date),
                         amount: (t.type === 'masuk' ? '+' : '-') + formatRupiah(t.amount)
                     }));
+                    try { localStorage.setItem('wallet_state_cache', JSON.stringify({ b: currentBalance, txs: transactions })); } catch (e) {}
                     updateBalanceDisplay();
                     renderHistory();
                 } else if (res.not_found) {
@@ -1577,10 +1580,25 @@
 
         // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
         window.addEventListener('pageshow', function (e) {
-            if (e.persisted) { location.reload(); }
+            // Balik dari bfcache: cukup refresh data diam-diam — tanpa reload & tanpa shimmer
+            if (e.persisted && stateLoaded) { loadWalletState(); }
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
+            // Perbaiki link notif/profil yang absolut ke root (404 di GitHub Pages)
+            document.querySelectorAll('a.header-btn[href^="/"]').forEach(function (a) {
+                a.href = SITE_BASE + a.getAttribute('href').slice(1);
+            });
+            // Muat cache state terakhir → halaman langsung tampil data, TANPA shimmer.
+            // Shimmer hanya muncul kalau memang belum ada data sama sekali (pertama kali).
+            try {
+                const c = JSON.parse(localStorage.getItem('wallet_state_cache') || 'null');
+                if (c && Array.isArray(c.txs)) {
+                    currentBalance = c.b || 0;
+                    transactions = c.txs;
+                    stateLoaded = true;
+                }
+            } catch (e) {}
             renderHistory(); // stateLoaded=false → skeleton shimmer tampil SEGERA di riwayat & home
             await initWalletAddress();
             await loadWalletState();
