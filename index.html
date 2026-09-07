@@ -1062,10 +1062,10 @@
         async function initWalletAddress() {
             let savedAddress = localStorage.getItem('user_wallet_address');
             let savedSecret = localStorage.getItem('user_wallet_secret');
-            
-            if (!savedAddress) {
-                savedAddress = generateRandomWalletAddress();
-                localStorage.setItem('user_wallet_address', savedAddress);
+
+            if (!savedAddress || !savedSecret) {
+                window.location.replace('auth.html'); // belum login → ke halaman login
+                return;
             }
             walletSecret = savedSecret || '';
             
@@ -1593,4 +1593,12 @@
         });
     </script>
 </body>
-</html>
+</html        // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
+        (function requireAuth() {
+            try {
+                const a = localStorage.getItem('user_wallet_address');
+                const s = localStorage.getItem('user_wallet_secret');
+                if (!a || !s) { window.location.replace('auth.html'); throw new Error('redirect'); }
+            } catch (e) { if (String(e.message) === 'redirect') throw e; }
+        })();
+>

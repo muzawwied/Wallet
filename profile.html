@@ -1030,6 +1030,14 @@
             }
         }
 
+        // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
+        (function requireAuth() {
+            try {
+                const a = localStorage.getItem('user_wallet_address');
+                const s = localStorage.getItem('user_wallet_secret');
+                if (!a || !s) { window.location.replace('auth.html'); throw new Error('redirect'); }
+            } catch (e) { if (String(e.message) === 'redirect') throw e; }
+        })();
         const API_BASE = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
             ? 'https://wallet-43a.pages.dev' : location.origin;
         const API = API_BASE + '/api/wallet';
@@ -1117,6 +1125,7 @@
         
         createKeys();
         initProfile();
+        setInterval(function () { if (!document.hidden) syncProfileFromServer(); }, 10000); // real-time
         syncProfileFromServer();
         
         if (!window.history.state) {
