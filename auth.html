@@ -392,7 +392,7 @@
             </div>
         </div>
 
-        <p class="terms-note" style="margin-top: 16px;">
+        <p class="terms-note" id="auth-terms-note" style="margin-top: 16px;">
             Dengan melanjutkan, Anda menyetujui <a href="#">Syarat & Ketentuan</a> serta <a href="#">Kebijakan Privasi</a> kami.
         </p>
 
@@ -437,10 +437,12 @@
             const titleEl = document.getElementById('auth-title-text');
             const subTitleEl = document.getElementById('auth-subtitle-text');
             const logoEl = document.getElementById('auth-logo');
+            const termsEl = document.getElementById('auth-terms-note');
             const hideHero = (viewName === 'create-pin');
             if (logoEl) logoEl.style.display = hideHero ? 'none' : 'block';
             if (titleEl) titleEl.style.display = hideHero ? 'none' : 'block';
             if (subTitleEl) subTitleEl.style.display = hideHero ? 'none' : 'block';
+            if (termsEl) termsEl.style.display = (viewName === 'google') ? 'block' : 'none';
             if (viewName === 'loading') {
                 titleEl.textContent = 'Memproses...';
                 subTitleEl.textContent = 'Mohon tunggu sebentar.';
