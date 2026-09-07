@@ -317,84 +317,6 @@
             margin: 32px 0 16px;
         }
 
-        .pin-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background-color: #e2e8f0;
-            transition: all 0.2s ease;
-        }
-
-        .pin-dot.filled {
-            background-color: var(--accent-blue);
-            transform: scale(1.1);
-        }
-
-        .pin-dot.error {
-            background-color: #ef4444;
-        }
-
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px 24px;
-            padding: 0 32px;
-            margin-top: 24px;
-            margin-bottom: 32px;
-        }
-
-        .keypad-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: none;
-            background-color: #f8fafc;
-            color: var(--text-main);
-            font-size: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: auto;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .keypad-btn:active {
-            background-color: #e2e8f0;
-            transform: scale(0.92);
-        }
-
-        .keypad-btn.empty {
-            background-color: transparent;
-            cursor: default;
-        }
-
-        .keypad-btn.empty:active {
-            transform: none;
-        }
-
-        .shake {
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
-        .verifying .pin-dot.filled {
-            animation: pin-verifying 0.6s ease-in-out infinite alternate;
-        }
-
-        @keyframes pin-verifying {
-            from { opacity: 1; }
-            to { opacity: 0.35; }
-        }
-
         .toggle-item {
             display: flex;
             align-items: center;
@@ -562,22 +484,6 @@
             </div>
 
             <div class="profile-section">
-                <div class="menu-item" onclick="switchView('view-pin')">
-                    <div class="menu-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                    </div>
-                    <span class="menu-title">Informasi Akun</span>
-                    <div class="menu-arrow">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </div>
-                </div>
-
                 <div class="menu-item" onclick="switchView('view-security')">
                     <div class="menu-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -619,103 +525,6 @@
                     <span class="menu-title text-danger">Keluar</span>
                 </div>
             </div>
-        </div>
-
-        <div id="view-pin" class="page-view" style="flex: 1;">
-            <div class="scanner-header">
-                <button class="back-btn" onclick="resetPinAndBack()" aria-label="Kembali">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"/>
-                        <polyline points="12 19 5 12 12 5"/>
-                    </svg>
-                </button>
-                <span class="scanner-title">Verifikasi Keamanan</span>
-            </div>
-
-            <div class="settings-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding-top: 6vh; padding-bottom: 4vh;">
-                <div>
-                    <div style="text-align: center;">
-                        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Masukkan PIN</h2>
-                        <p style="font-size: 0.9rem; color: var(--text-muted);">Masukkan 6 digit PIN keamanan Anda</p>
-                    </div>
-
-                    <div class="pin-display" id="pin-dots" style="margin: 24px 0 16px;">
-                        <div class="pin-dot"></div>
-                        <div class="pin-dot"></div>
-                        <div class="pin-dot"></div>
-                        <div class="pin-dot"></div>
-                        <div class="pin-dot"></div>
-                        <div class="pin-dot"></div>
-                    </div>
-                    
-                    <div id="pin-error-msg" class="text-danger" style="text-align: center; font-size: 0.85rem; height: 20px; opacity: 0; transition: opacity 0.2s;">
-                        PIN tidak valid. Coba lagi.
-                    </div>
-                </div>
-
-                <div class="keypad" style="margin-top: 0; margin-bottom: 0;">
-                    <button class="keypad-btn" onclick="addPin('1')">1</button>
-                    <button class="keypad-btn" onclick="addPin('2')">2</button>
-                    <button class="keypad-btn" onclick="addPin('3')">3</button>
-                    <button class="keypad-btn" onclick="addPin('4')">4</button>
-                    <button class="keypad-btn" onclick="addPin('5')">5</button>
-                    <button class="keypad-btn" onclick="addPin('6')">6</button>
-                    <button class="keypad-btn" onclick="addPin('7')">7</button>
-                    <button class="keypad-btn" onclick="addPin('8')">8</button>
-                    <button class="keypad-btn" onclick="addPin('9')">9</button>
-                    <div class="keypad-btn empty"></div>
-                    <button class="keypad-btn" onclick="addPin('0')">0</button>
-                    <button class="keypad-btn" onclick="removePin()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-                            <line x1="18" y1="9" x2="12" y2="15"></line>
-                            <line x1="12" y1="9" x2="18" y2="15"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-info" class="page-view">
-            <div class="scanner-header">
-                <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"/>
-                        <polyline points="12 19 5 12 12 5"/>
-                    </svg>
-                </button>
-                <span class="scanner-title">Informasi Akun</span>
-            </div>
-
-            <div class="settings-content">
-                <div class="form-group">
-                    <label class="form-label">Identitas</label>
-                    <div class="form-input-wrapper">
-                        <div class="form-input" id="identity-val" style="font-family: monospace; word-break: break-all; font-size: 0.9rem;">-</div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Kata Sandi</label>
-                    <div class="form-input-wrapper">
-                        <input type="password" class="form-input" id="pwd-field" value="SandiRahasia2026!" readonly style="cursor: default;">
-                        <button class="icon-btn" onclick="togglePassword()">
-                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">PIN Keamanan</label>
-                    <div class="form-input-wrapper">
-                        <div class="form-input" style="font-size: 1.2rem; letter-spacing: 4px; padding-bottom: 12px;">••••••</div>
-                    </div>
-                </div>
-
-</div>
         </div>
 
         <div id="view-security" class="page-view">
@@ -847,121 +656,18 @@
         }
 
         window.addEventListener('popstate', function(e) {
-            if (e.state && e.state.view) {
+            if (e.state && e.state.view && document.getElementById(e.state.view)) {
                 switchView(e.state.view, true);
             } else {
                 switchView('view-profile', true);
             }
         });
 
-        function resetPinAndBack() {
-            currentPin = '';
-            updatePinDisplay();
-            document.getElementById('pin-error-msg').style.opacity = '0';
-            document.getElementById('pin-dots').classList.remove('shake');
-            switchView('view-profile');
-        }
-
-        let pinVerifying = false;
-
-        function addPin(num) {
-            if (pinVerifying || currentPin.length < 6) {
-                currentPin += num;
-                updatePinDisplay();
-                
-                if (currentPin.length === 6) {
-                    setTimeout(verifyPinAction, 150);
-                }
-            }
-        }
-
-        function removePin() {
-            if (pinVerifying) return;
-            if (currentPin.length > 0) {
-                currentPin = currentPin.slice(0, -1);
-                updatePinDisplay();
-                document.getElementById('pin-error-msg').style.opacity = '0';
-                document.getElementById('pin-dots').classList.remove('shake');
-                
-                const dots = document.querySelectorAll('.pin-dot');
-                dots.forEach(dot => dot.classList.remove('error'));
-            }
-        }
-
-        function updatePinDisplay() {
-            const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, index) => {
-                if (index < currentPin.length) {
-                    dot.classList.add('filled');
-                } else {
-                    dot.classList.remove('filled');
-                }
-            });
-        }
-
-        async function verifyPinAction() {
-            const address = localStorage.getItem('user_wallet_address');
-            const secret = localStorage.getItem('user_wallet_secret');
-            if (!address || !secret) { window.location.href = 'auth.html'; return; }
-            const pin = currentPin;
-            const dots = document.querySelectorAll('.pin-dot');
-            const dotsContainer = document.getElementById('pin-dots');
-            const msgEl = document.getElementById('pin-error-msg');
-            pinVerifying = true;
-            dotsContainer.classList.add('verifying');
-            const verifyTimeout = new AbortController();
-            const timeoutId = setTimeout(() => verifyTimeout.abort(), 15000);
-            try {
-                const res = await fetch(API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': secret },
-                    body: JSON.stringify({ action: 'pin_verify', address: address, pin: pin }),
-                    signal: verifyTimeout.signal
-                });
-                const d = await res.json().catch(() => ({}));
-                if (!res.ok || !d.success) throw new Error((d && d.error) || 'PIN tidak valid. Coba lagi.');
-                pinVerifying = false;
-                dotsContainer.classList.remove('verifying');
-                clearTimeout(timeoutId);
-                currentPin = '';
-                updatePinDisplay();
-                switchView('view-info');
-            } catch (e) {
-                pinVerifying = false;
-                dotsContainer.classList.remove('verifying');
-                clearTimeout(timeoutId);
-                dots.forEach(dot => dot.classList.add('error'));
-                dotsContainer.classList.remove('shake');
-                void dotsContainer.offsetWidth;
-                dotsContainer.classList.add('shake');
-                msgEl.textContent = e.message;
-                msgEl.style.opacity = '1';
-                setTimeout(() => {
-                    currentPin = '';
-                    updatePinDisplay();
-                    msgEl.style.opacity = '0';
-                    dots.forEach(dot => dot.classList.remove('error'));
-                }, 900);
-            }
-        }
-
         function logoutAkun() {
             ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name'].forEach(function (k) {
                 localStorage.removeItem(k);
             });
             window.location.href = 'auth.html';
-        }
-
-        function togglePassword() {
-            const pwd = document.getElementById('pwd-field');
-            const icon = document.getElementById('eye-icon');
-            if (pwd.type === 'password') {
-                pwd.type = 'text';
-                icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
-            } else {
-                pwd.type = 'password';
-                icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-            }
         }
 
         function copyText(elementId, btnElement) {
@@ -1078,6 +784,8 @@
         }
 
         function initProfile() {
+            const walletAddr = localStorage.getItem('user_wallet_address');
+
             let savedName = localStorage.getItem('saved_user_name');
             if (!savedName) {
                 savedName = 'Nama Pengguna';
@@ -1090,10 +798,6 @@
                 localStorage.setItem('saved_user_id', savedId);
             }
             document.getElementById('profile-id-text').innerText = savedId;
-
-            let walletAddr = localStorage.getItem('user_wallet_address');
-            const identityEl = document.getElementById('identity-val');
-            if (identityEl) identityEl.innerText = walletAddr || 'Belum ada alamat wallet';
 
             let savedAvatar = localStorage.getItem('saved_user_avatar') || localStorage.getItem('google_avatar_url');
             if (savedAvatar) {
