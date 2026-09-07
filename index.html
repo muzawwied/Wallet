@@ -8,7 +8,7 @@
             var v = function (k) { var x = localStorage.getItem(k); return (!x || x === 'undefined' || x === 'null') ? null : x; };
             if (!v('user_wallet_address') || !v('user_wallet_secret') || localStorage.getItem('user_logged_in') !== '1') {
                 document.documentElement.style.display = 'none';
-                location.replace('auth.html');
+                location.replace('/auth.html');
             }
         } catch (e) {}
     })();
@@ -20,7 +20,7 @@
     <meta http-equiv="Expires" content="0">
     <title>ClincooPay — Dompet Digital</title>
     <meta name="description" content="ClincooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
-    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="icon" type="image/png" href="/logo.png">
     
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YR2570ZXEM"></script>
     <script>
@@ -866,13 +866,13 @@
 
     <div id="page-dompet" class="page active">
         <div class="header-actions">
-            <a href="notifications.html" class="header-btn" aria-label="Notifikasi">
+            <a href="/notifications.html" class="header-btn" aria-label="Notifikasi">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
                 </svg>
             </a>
-            <a href="profile.html" class="header-btn" aria-label="Profil Pengguna">
+            <a href="/profile.html" class="header-btn" aria-label="Profil Pengguna">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
@@ -1071,7 +1071,7 @@
                     localStorage.removeItem('user_wallet_address');
                     localStorage.removeItem('user_wallet_secret');
                     localStorage.removeItem('user_logged_in');
-                    window.location.replace('auth.html'); throw new Error('redirect');
+                    window.location.replace('/auth.html'); throw new Error('redirect');
                 }
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
@@ -1095,7 +1095,7 @@
                 localStorage.removeItem('user_logged_in');
             }
             if (!savedAddress || !savedSecret) {
-                window.location.replace('auth.html'); // belum login → ke halaman login
+                window.location.replace('/auth.html'); // belum login → ke halaman login
                 return;
             }
             walletSecret = savedSecret || '';
