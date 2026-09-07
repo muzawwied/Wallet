@@ -177,6 +177,7 @@
         .profile-id {
             font-size: 0.9rem;
             color: var(--text-muted);
+            word-break: break-all;
         }
 
         .profile-section {
@@ -770,7 +771,8 @@
                             document.getElementById('profile-name-text').innerText = d.display_name;
                             localStorage.setItem('saved_user_name', d.display_name);
                         }
-                        document.getElementById('profile-id-text').innerText = d.email || ('0x…' + addr.slice(-6));
+                        document.getElementById('profile-id-text').innerText = addr;
+                        localStorage.setItem('saved_user_id', addr);
                         // foto asli akun Google — hanya dipakai kalau user belum upload avatar sendiri
                         if (d.picture && localStorage.getItem('avatar_is_custom') !== '1') {
                             localStorage.setItem('google_avatar_url', d.picture);
@@ -794,11 +796,9 @@
             }
             document.getElementById('profile-name-text').innerText = savedName;
 
-            let savedId = localStorage.getItem('saved_user_id');
-            if (!savedId) {
-                savedId = walletAddr ? '0x…' + walletAddr.slice(-6) : 'Tanpa alamat';
-                localStorage.setItem('saved_user_id', savedId);
-            }
+            let savedId = walletAddr || localStorage.getItem('saved_user_id');
+            if (!savedId) savedId = 'Tanpa alamat';
+            if (walletAddr) localStorage.setItem('saved_user_id', walletAddr);
             document.getElementById('profile-id-text').innerText = savedId;
 
             let savedAvatar = localStorage.getItem('saved_user_avatar') || localStorage.getItem('google_avatar_url');
