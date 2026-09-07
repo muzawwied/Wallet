@@ -362,40 +362,39 @@
         <div id="view-google" class="auth-view active">
             <div id="google-btn-container" style="min-height: 44px; width: 100%; display: flex; justify-content: center;"></div>
             <p id="google-fallback-note" style="display: none; color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: 6px 0 0;">Login Google belum aktif sebentar — muat ulang halaman beberapa saat lagi.</p>
-
-
-            <!-- Halaman: Masukkan PIN — keypad buatan web -->
-            <div id="view-pin-login" class="auth-view">
-                <div style="display: flex; flex-direction: column; gap: 18px; align-items: center; width: 100%;">
-                    <div style="text-align: center;">
-                        <div style="font-weight: 600; font-size: 1rem;">Masukkan PIN Anda</div>
-                        <div id="pin-login-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
-                    </div>
-                    <div id="pin-login-dots" class="pin-dots"></div>
-                    <span id="pin-login-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
-                    <div id="pad-login" class="pin-pad"></div>
-                    <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
-                </div>
-            </div>
-
-            <!-- Halaman: Buat PIN lalu Konfirmasi — keypad buatan web -->
-            <div id="view-create-pin" class="auth-view">
-                <div style="display: flex; flex-direction: column; gap: 18px; align-items: center; width: 100%;">
-                    <div style="text-align: center;">
-                        <div id="pin-create-title" style="font-weight: 600; font-size: 1rem;">Buat PIN Keamanan</div>
-                        <div id="pin-create-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
-                    </div>
-                    <div id="pin-create-dots" class="pin-dots"></div>
-                    <span id="pin-create-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
-                    <div id="pad-create" class="pin-pad"></div>
-                    <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
-                </div>
-            </div>
-
-            <p class="terms-note" style="margin-top: 16px;">
-                Dengan melanjutkan, Anda menyetujui <a href="#">Syarat & Ketentuan</a> serta <a href="#">Kebijakan Privasi</a> kami.
-            </p>
         </div>
+
+        <!-- Halaman: Masukkan PIN — keypad buatan web -->
+        <div id="view-pin-login" class="auth-view">
+            <div style="display: flex; flex-direction: column; gap: 18px; align-items: center; width: 100%;">
+                <div style="text-align: center;">
+                    <div style="font-weight: 600; font-size: 1rem;">Masukkan PIN Anda</div>
+                    <div id="pin-login-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
+                </div>
+                <div id="pin-login-dots" class="pin-dots"></div>
+                <span id="pin-login-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
+                <div id="pad-login" class="pin-pad"></div>
+                <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
+            </div>
+        </div>
+
+        <!-- Halaman: Buat PIN lalu Konfirmasi — keypad buatan web -->
+        <div id="view-create-pin" class="auth-view">
+            <div style="display: flex; flex-direction: column; gap: 18px; align-items: center; width: 100%;">
+                <div style="text-align: center;">
+                    <div id="pin-create-title" style="font-weight: 600; font-size: 1rem;">Buat PIN Keamanan</div>
+                    <div id="pin-create-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
+                </div>
+                <div id="pin-create-dots" class="pin-dots"></div>
+                <span id="pin-create-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
+                <div id="pad-create" class="pin-pad"></div>
+                <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
+            </div>
+        </div>
+
+        <p class="terms-note" style="margin-top: 16px;">
+            Dengan melanjutkan, Anda menyetujui <a href="#">Syarat & Ketentuan</a> serta <a href="#">Kebijakan Privasi</a> kami.
+        </p>
 
         <!-- View 2: Simulasi Loading Kosong -->
         <div id="view-loading" class="auth-view">
