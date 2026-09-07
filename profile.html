@@ -690,7 +690,9 @@
         }
 
         function copyUserId(btnElement) {
-            const text = document.getElementById('profile-id-text').innerText;
+            // Salin ALAMAT LENGKAP dari sesi (tampilan di layar tetap versi singkat 0x…xxxx).
+            const full = (localStorage.getItem('user_wallet_address') || '').trim();
+            const text = /^0x[0-9a-fA-F]{40}$/.test(full) ? full : document.getElementById('profile-id-text').innerText;
             const textarea = document.createElement('textarea');
             textarea.value = text;
             document.body.appendChild(textarea);
