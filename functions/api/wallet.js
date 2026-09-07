@@ -233,32 +233,11 @@ export async function onRequestPost({ request, env }) {
       if (Number(t.exp) * 1000 < Date.now()) return j({ error: 'Token Google kedaluwarsa' }, 401);
       const email = String(t.email).toLowerCase();
       const name = String(t.name || '').slice(0, 60);
-
-      // sudah terdaftar → login: putar kunci perangkat, kirim sesi
-      const acc = await db.prepare('SELECT address, display_name FROM wallet_accounts WHERE email = ?').bind(email).first();
-      if (acc) {
-        const secret = randomSecret();
-        await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(await sha256(secret), acc.address).run();
-        return j({ success: true, registered: true, address: acc.address, secret: secret, display_name: (acc.display_name || '') });
-      }
-
-      // belum terdaftar → ikat dompet guest di perangkat ini (saldo aman), atau buat akun baru
-      const bindAddr = String(body.address || '').toLowerCase();
-      const devSecret = request.headers.get('x-wallet-secret') || '';
-      if (bindAddr && ADDR_RE.test(bindAddr) && devSecret) {
-        const g = await db.prepare('SELECT secret_hash, email FROM wallet_accounts WHERE address = ?').bind(bindAddr).first();
-        if (g && g.secret_hash === await sha256(devSecret) && !g.email) {
-          await db.prepare("UPDATE wallet_accounts SET email = ?, display_name = COALESCE(NULLIF(display_name, ''), ?) WHERE address = ?").bind(email, name || null, bindAddr).run();
-          return j({ success: true, registered: false, bound: true, address: bindAddr, secret: '', display_name: name || '' });
-        }
-      }
-
-      let address = randomAddress();
-      while (await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first()) address = randomAddress();
-      const secret = randomSecret();
-      await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, display_name) VALUES (?, ?, 0, ?, ?, ?)')
-        .bind(address, await sha256(secret), 'user', email, name || null).run();
-      return j({ success: true, registered: false, address: address, secret: secret, display_name: name || '' });
+      const acc = await db.prepare('SELECT address FROM wallet_accounts WHERE email = ?').bind(email).first();
+      const nonce = randomSecret().slice(0, 48);
+      await db.prepare('DELETE FROM google_pending_tokens WHERE email = ?').bind(email).run();
+      await db.prepare("INSERT INTO google_pending_tokens (nonce, email, name) VALUES (?, ?, ?)").bind(nonce, email, name).run();
+      return j({ registered: !!acc, email: email, name: name, nonce: nonce });
     }
 
     if (action === 'google_login') {

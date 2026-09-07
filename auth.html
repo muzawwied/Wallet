@@ -354,6 +354,49 @@
             <p id="google-fallback-note" style="display: none; color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: 6px 0 0;">Login Google belum aktif sebentar — muat ulang halaman beberapa saat lagi.</p>
 
 
+            <!-- Halaman: Masukkan PIN (akun Google sudah terdaftar) -->
+            <div id="view-pin-login" class="auth-view">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; font-size: 1rem;">Masukkan PIN Anda</div>
+                        <div id="pin-login-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-input-wrapper">
+                            <input type="password" id="pin-login-input" class="form-input" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="letter-spacing: 8px; font-size: 1.2rem; text-align: center;">
+                        </div>
+                    </div>
+                    <span id="pin-login-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
+                    <button type="button" class="btn-submit" onclick="submitGooglePin('login')">Masuk &amp; Lanjutkan</button>
+                    <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
+                </div>
+            </div>
+
+            <!-- Halaman: Buat PIN + Konfirmasi (akun Google baru) -->
+            <div id="view-create-pin" class="auth-view">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; font-size: 1rem;">Buat PIN Keamanan</div>
+                        <div id="pin-create-email" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pin-create-input">PIN (6 digit)</label>
+                        <div class="form-input-wrapper">
+                            <input type="password" id="pin-create-input" class="form-input" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="letter-spacing: 8px; font-size: 1.2rem; text-align: center;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pin-confirm-input">Konfirmasi PIN</label>
+                        <div class="form-input-wrapper">
+                            <input type="password" id="pin-confirm-input" class="form-input" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="letter-spacing: 8px; font-size: 1.2rem; text-align: center;">
+                        </div>
+                    </div>
+                    <span id="pin-create-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1em;"></span>
+                    <button type="button" class="btn-submit" onclick="submitGooglePin('create')">Simpan PIN &amp; Lanjutkan</button>
+                    <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;" onclick="switchAuthView('google')">&larr; Pilih akun lain</button>
+                </div>
+            </div>
+
             <p class="terms-note" style="margin-top: 16px;">
                 Dengan melanjutkan, Anda menyetujui <a href="#">Syarat & Ketentuan</a> serta <a href="#">Kebijakan Privasi</a> kami.
             </p>
@@ -403,6 +446,12 @@
             if (viewName === 'loading') {
                 titleEl.textContent = 'Memproses...';
                 subTitleEl.textContent = 'Mohon tunggu sebentar.';
+            } else if (viewName === 'pin-login') {
+                titleEl.textContent = 'Verifikasi Keamanan';
+                subTitleEl.textContent = 'Masukkan PIN untuk membuka dompet Anda.';
+            } else if (viewName === 'create-pin') {
+                titleEl.textContent = 'Amankan Akun Anda';
+                subTitleEl.textContent = 'Buat 6 digit PIN untuk keamanan transaksi Anda.';
             } else {
                 titleEl.textContent = 'Selamat Datang';
                 subTitleEl.textContent = 'Masuk dengan akun Google Anda.';
@@ -458,14 +507,50 @@
         async function onGoogleCredential(resp) {
             switchAuthView('loading');
             try {
-                const addr = localStorage.getItem('user_wallet_address') || '';
-                const sec = localStorage.getItem('user_wallet_secret') || '';
-                const headers = {};
-                if (addr && sec) { headers['x-wallet-secret'] = sec; }
-                const d = await callApi({ action: 'google_verify', credential: resp.credential, address: addr }, headers);
-                saveLocalAndGo(d.address, d.secret, d.display_name || ''); // langsung pindah ke halaman utama
+                const d = await callApi({ action: 'google_verify', credential: resp.credential });
+                gNonce = d.nonce; gEmail = d.email || '';
+                if (d.registered) {
+                    document.getElementById('pin-login-email').textContent = gEmail;
+                    document.getElementById('pin-login-input').value = '';
+                    document.getElementById('pin-login-error').textContent = '';
+                    switchAuthView('pin-login');  // sudah terdaftar → masukkan PIN
+                } else {
+                    document.getElementById('pin-create-email').textContent = gEmail;
+                    document.getElementById('pin-create-input').value = '';
+                    document.getElementById('pin-confirm-input').value = '';
+                    document.getElementById('pin-create-error').textContent = '';
+                    switchAuthView('create-pin'); // belum terdaftar → buat PIN + konfirmasi
+                }
             } catch (e) {
                 switchAuthView('google');
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function submitGooglePin(mode) {
+            const errEl = document.getElementById(mode === 'login' ? 'pin-login-error' : 'pin-create-error');
+            const pin = document.getElementById(mode === 'login' ? 'pin-login-input' : 'pin-create-input').value || '';
+            errEl.textContent = '';
+            if (!/^\d{6}$/.test(pin)) { errEl.textContent = 'PIN harus 6 digit angka.'; return; }
+            let payload = { nonce: gNonce, pin: pin };
+            let headers = {};
+            if (mode === 'create') {
+                const confirm = document.getElementById('pin-confirm-input').value || '';
+                if (pin !== confirm) { errEl.textContent = 'Konfirmasi PIN tidak sama.'; return; }
+                payload.action = 'google_register';
+                const addr = localStorage.getItem('user_wallet_address') || '';
+                const sec = localStorage.getItem('user_wallet_secret') || '';
+                if (addr && sec) { payload.address = addr; headers['x-wallet-secret'] = sec; }
+            } else {
+                payload.action = 'google_login';
+            }
+            switchAuthView('loading');
+            try {
+                const res = await callApi(payload, headers);
+                saveLocalAndGo(res.address, res.secret, res.display_name || ''); // → halaman utama
+            } catch (e) {
+                switchAuthView(mode === 'login' ? 'pin-login' : 'create-pin');
+                errEl.textContent = e.message;
                 showToast(e.message, 'error');
             }
         }
