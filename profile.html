@@ -386,6 +386,15 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
+        .verifying .pin-dot.filled {
+            animation: pin-verifying 0.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes pin-verifying {
+            from { opacity: 1; }
+            to { opacity: 0.35; }
+        }
+
         .toggle-item {
             display: flex;
             align-items: center;
@@ -853,8 +862,10 @@
             switchView('view-profile');
         }
 
+        let pinVerifying = false;
+
         function addPin(num) {
-            if (currentPin.length < 6) {
+            if (pinVerifying || currentPin.length < 6) {
                 currentPin += num;
                 updatePinDisplay();
                 
@@ -865,6 +876,7 @@
         }
 
         function removePin() {
+            if (pinVerifying) return;
             if (currentPin.length > 0) {
                 currentPin = currentPin.slice(0, -1);
                 updatePinDisplay();
@@ -895,18 +907,29 @@
             const dots = document.querySelectorAll('.pin-dot');
             const dotsContainer = document.getElementById('pin-dots');
             const msgEl = document.getElementById('pin-error-msg');
+            pinVerifying = true;
+            dotsContainer.classList.add('verifying');
+            const verifyTimeout = new AbortController();
+            const timeoutId = setTimeout(() => verifyTimeout.abort(), 15000);
             try {
                 const res = await fetch(API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-wallet-secret': secret },
-                    body: JSON.stringify({ action: 'pin_verify', address: address, pin: pin })
+                    body: JSON.stringify({ action: 'pin_verify', address: address, pin: pin }),
+                    signal: verifyTimeout.signal
                 });
                 const d = await res.json().catch(() => ({}));
                 if (!res.ok || !d.success) throw new Error((d && d.error) || 'PIN tidak valid. Coba lagi.');
+                pinVerifying = false;
+                dotsContainer.classList.remove('verifying');
+                clearTimeout(timeoutId);
                 currentPin = '';
                 updatePinDisplay();
                 switchView('view-info');
             } catch (e) {
+                pinVerifying = false;
+                dotsContainer.classList.remove('verifying');
+                clearTimeout(timeoutId);
                 dots.forEach(dot => dot.classList.add('error'));
                 dotsContainer.classList.remove('shake');
                 void dotsContainer.offsetWidth;
