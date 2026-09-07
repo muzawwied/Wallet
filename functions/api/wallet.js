@@ -32,6 +32,7 @@ async function ensureSchema(db) {
   )`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_from ON wallet_transactions (from_addr)`).run();
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_tx_to ON wallet_transactions (to_addr)`).run();
+  try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`).run(); } catch (e) {}
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_notif_reads (
     addr TEXT NOT NULL,
     tx_id INTEGER NOT NULL,
@@ -170,6 +171,50 @@ export async function onRequestPost({ request, env }) {
       if (!tx) return j({ error: 'Notifikasi tidak ditemukan' }, 404);
       await db.prepare('INSERT OR IGNORE INTO wallet_notif_reads (addr, tx_id) VALUES (?, ?)').bind(addr, txId).run();
       return j({ success: true });
+    }
+
+    // ===== SISTEM ADMIN/OWNER (backend-only, digerbangi x-admin-secret dari env) =====
+    const adminSecret = request.headers.get('x-admin-secret') || '';
+    if (!env.ADMIN_SECRET || adminSecret !== env.ADMIN_SECRET) return j({ error: 'Akses admin ditolak' }, 403);
+
+    if (action === 'admin_setup') {
+      // Jadikan alamat = owner + seed saldo awal (untuk bootstrap transfer ke pengguna)
+      const address = String(body.address || '').toLowerCase();
+      const amount = Math.floor(Number(body.amount != null ? body.amount : 10000000));
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      if (!amount || amount <= 0) return j({ error: 'Jumlah seed tidak valid' }, 400);
+      const ZERO = '0x' + '0'.repeat(40);
+
+      const existing = await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first();
+      const txid = 'ADM-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+        .bind(txid, ZERO, address, amount, 'Saldo awal owner (admin)').run();
+
+      if (existing) {
+        await db.prepare("UPDATE wallet_accounts SET role = 'owner', balance = balance + ? WHERE address = ?").bind(amount, address).run();
+        return j({ success: true, role: 'owner', seeded: amount });
+      }
+      const secret = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      const secretHash = await sha256(secret);
+      await db.prepare("INSERT INTO wallet_accounts (address, secret_hash, balance, role) VALUES (?, ?, ?, 'owner')").bind(address, secretHash, amount).run();
+      return j({ success: true, role: 'owner', seeded: amount, secret: secret });
+    }
+
+    if (action === 'admin_grant') {
+      // Owner menambah saldo pengguna lain (muncul di riwayat penerima sebagai dana masuk)
+      const to = String(body.to || '').toLowerCase();
+      const amount = Math.floor(Number(body.amount));
+      const note = String(body.note || 'Top-up dari owner').slice(0, 140);
+      if (!ADDR_RE.test(to)) return j({ error: 'Alamat tidak valid' }, 400);
+      if (!amount || amount <= 0) return j({ error: 'Jumlah tidak valid' }, 400);
+      const target = await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(to).first();
+      if (!target) return j({ error: 'Alamat penerima belum terdaftar di Wallet.' }, 404);
+      const ZERO = '0x' + '0'.repeat(40);
+      const txid = 'ADM-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+        .bind(txid, ZERO, to, amount, note).run();
+      await db.prepare('UPDATE wallet_accounts SET balance = balance + ? WHERE address = ?').bind(amount, to).run();
+      return j({ success: true, granted: amount, to: to });
     }
 
     return j({ error: 'unknown action' }, 400);
