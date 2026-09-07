@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <script>
+    // Pagar dini: belum login → sembunyikan halaman & lempar ke auth SEBELUM konten tampil
+    (function () {
+        try {
+            var v = function (k) { var x = localStorage.getItem(k); return (!x || x === 'undefined' || x === 'null') ? null : x; };
+            if (!v('user_wallet_address') || !v('user_wallet_secret') || localStorage.getItem('user_logged_in') !== '1') {
+                document.documentElement.style.display = 'none';
+                location.replace('../auth/');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+        // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) { location.reload(); }
+        });
+    </script>
+    <title>ClincooPay — Notifikasi</title>
+    
+    <!-- Menambahkan favicon yang sama dengan halaman utama -->
+    <link rel="icon" type="image/png" href="../logo.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        .scanner-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 16px 12px;
+            background-color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            margin-left: -4px;
+            border-radius: 50%;
+            transition: opacity 0.2s;
+        }
+        
+        .back-btn:hover {
+            opacity: 0.7;
+        }
+
+        .scanner-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .shimmer-bar {
+            display: inline-block;
+            height: 0.7em;
+            background: linear-gradient(90deg, rgba(148,163,184,0.12) 25%, rgba(148,163,184,0.28) 50%, rgba(148,163,184,0.12) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 5px;
+            vertical-align: middle;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skeleton-notif { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-bottom: 1px solid rgba(148,163,184,0.1); }
+        .notif-section {
+            padding: 8px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notif-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: transparent;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item:hover {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            border-bottom-color: transparent;
+        }
+
+        .notif-item.unread {
+            background-color: transparent;
+        }
+
+        .notif-item.unread::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 12px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+        }
+
+        .notif-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .notif-item.unread .notif-icon {
+            color: var(--accent-blue);
+        }
+
+        .icon-system { color: #64748b; }
+        .icon-promo { color: #f59e0b; }
+        .icon-success { color: #16a34a; }
+        .icon-alert { color: #ef4444; }
+
+        .notif-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding-right: 12px;
+        }
+
+        .notif-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+
+        .notif-item.unread .notif-title {
+            font-weight: 600;
+        }
+
+        .notif-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        .notif-time {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .notif-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px 56px;
+            text-align: center;
+        }
+        .notif-empty-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .notif-empty-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 4px;
+            max-width: 240px;
+            line-height: 1.4;
+        }
+
+        .notif-date-group {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin: 16px 0 4px 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="scanner-header">
+            <button class="back-btn" onclick="window.location.href='../'" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+            </button>
+            <span class="scanner-title">Notifikasi</span>
+        </div>
+
+        <div class="notif-section" id="notif-section"></div>
+    </div>
+
+    <script>
+        // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
+        (function requireAuth() {
+            try {
+                var bad = function (v) { return !v || v === 'undefined' || v === 'null'; };
+                var a = localStorage.getItem('user_wallet_address');
+                var s = localStorage.getItem('user_wallet_secret');
+                if (bad(a) || bad(s) || localStorage.getItem('user_logged_in') !== '1') {
+                    localStorage.removeItem('user_wallet_address');
+                    localStorage.removeItem('user_wallet_secret');
+                    localStorage.removeItem('user_logged_in');
+                    window.location.replace('../auth/'); throw new Error('redirect');
+                }
+            } catch (e) { if (String(e.message) === 'redirect') throw e; }
+        })();
+        const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
+            ? 'https://wallet-muz.pages.dev' : location.origin;
+        const API = WALLET_API + '/api/wallet';
+        function getWalletAddr() {
+            try { return localStorage.getItem('user_wallet_address') || ''; } catch (e) { return ''; }
+        }
+        let _lastSnap = '';
+        let _rendered = [];
+        const CACHE_KEY = 'wallet_notifs_cache_v1';
+
+        function renderList(list) {
+            const section = document.getElementById('notif-section');
+            if (!section) return;
+            if (!list.length) { section.innerHTML = emptyMarkup(); return; }
+            const today = list.filter(function (n) { return !n.read || n.time.indexOf('yang lalu') !== -1 || n.time.indexOf('Hari ini') !== -1; });
+            const older = list.filter(function (n) { return today.indexOf(n) === -1; });
+            let html = '';
+            if (today.length) { html += '<div class="notif-date-group">Baru</div>' + today.map(itemMarkup).join(''); }
+            if (older.length) { html += '<div class="notif-date-group" style="margin-top: 16px;">Terdahulu</div>' + older.map(itemMarkup).join(''); }
+            section.innerHTML = html;
+        }
+
+        function renderSkeleton() {
+            const sk = '<div class="skeleton-notif">' +
+                '<span class="shimmer-bar" style="width:120px;"></span>' +
+                '<span class="shimmer-bar" style="width:230px; height:0.6em;"></span>' +
+                '<span class="shimmer-bar" style="width:80px; height:0.55em;"></span>' +
+                '</div>';
+            document.getElementById('notif-section').innerHTML = sk.repeat(5);
+        }
+
+        function renderCached() {
+            if (!getWalletAddr()) { renderEmpty(); return; }
+            try {
+                const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+                if (c && typeof c.snap === 'string') {
+                    _lastSnap = c.snap;
+                    _rendered = c.items || [];
+                    renderList(_rendered);
+                    return;
+                }
+            } catch (e) {}
+            renderSkeleton(); // belum ada cache: shimmer tipis sampai data pertama nyampe
+        }
+
+        function fmtTime(d) {
+            if (!d) return 'Baru saja';
+            const dt = new Date(d.replace(' ', 'T') + 'Z');
+            const now = new Date();
+            const diffMs = now - dt;
+            if (diffMs < 60 * 60 * 1000) return Math.max(1, Math.floor(diffMs / 60000)) + ' menit yang lalu';
+            if (diffMs < 24 * 60 * 60 * 1000) return Math.floor(diffMs / 3600000) + ' jam yang lalu';
+            const sameDay = dt.toDateString() === now.toDateString();
+            const yest = new Date(now); yest.setDate(now.getDate() - 1);
+            const t = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            if (sameDay) return 'Hari ini, ' + t;
+            if (dt.toDateString() === yest.toDateString()) return 'Kemarin, ' + t;
+            return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + t;
+        }
+
+        function emptyMarkup() {
+            return '<div class="notif-empty">' +
+                '<span class="notif-empty-title">Belum Ada Notifikasi</span>' +
+                '<span class="notif-empty-desc">Notifikasi aktivitas wallet kamu akan muncul di sini secara real-time.</span>' +
+                '</div>';
+        }
+
+        function itemMarkup(n) {
+            return '<div class="notif-item' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '" onclick="markAsRead(this)">' +
+                '<div class="notif-content">' +
+                '<span class="notif-title">' + (n.title || '') + '</span>' +
+                '<span class="notif-desc">' + (n.desc || '') + '</span>' +
+                '<span class="notif-time">' + (n.time || '') + '</span>' +
+                '</div></div>';
+        }
+
+        function renderEmpty() {
+            document.getElementById('notif-section').innerHTML = emptyMarkup();
+        }
+
+        async function pullNotifs() {
+            const section = document.getElementById('notif-section');
+            if (!getWalletAddr()) { renderEmpty(); return; }
+            try {
+                const res = await fetch(API + '?action=external_pull&addr=' + encodeURIComponent(getWalletAddr()));
+                if (!res.ok) { if (!_rendered.length) renderEmpty(); return; }
+                const d = await res.json();
+                const notifs = (d.data && d.data.notifications) || [];
+                const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; }));
+                if (snap === _lastSnap) return;
+                _lastSnap = snap;
+                _rendered = notifs.map(function (n) {
+                    return { id: n.id, title: n.source || 'Notifikasi', desc: n.message || '', time: fmtTime(n.created_at), read: n.read, _nid: n.id };
+                });
+                renderList(_rendered);
+                try { localStorage.setItem(CACHE_KEY, JSON.stringify({ snap: snap, items: _rendered })); } catch (e) {}
+            } catch (e) { if (!_rendered.length) renderEmpty(); }
+        }
+
+        function markAsRead(element) {
+            if (element.classList.contains('unread')) {
+                element.classList.remove('unread');
+                element.style.transform = 'scale(0.98)';
+                setTimeout(() => { element.style.transform = 'scale(1)'; }, 150);
+                const nid = element.getAttribute('data-id');
+                if (nid) {
+                    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'external_read', addr: getWalletAddr(), id: parseInt(nid, 10) }) }).catch(function () {});
+                }
+            }
+        }
+
+        renderCached();
+        pullNotifs();
+        setInterval(function () { if (!document.hidden) pullNotifs(); }, 5000);
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) pullNotifs(); });
+    </script>
+</body>
+</html>
