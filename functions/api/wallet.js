@@ -39,7 +39,8 @@ async function ensureSchema(db) {
     name TEXT,
     created_at DATETIME DEFAULT (datetime('now'))
   )`).run();
-  for (const col of ['email TEXT', 'pin_hash TEXT', 'pin_salt TEXT', 'display_name TEXT', 'failed_logins INTEGER NOT NULL DEFAULT 0', 'locked_until TEXT']) {
+  try { await db.prepare(`ALTER TABLE google_pending_tokens ADD COLUMN picture TEXT`).run(); } catch (e) {}
+  for (const col of ['email TEXT', 'pin_hash TEXT', 'pin_salt TEXT', 'display_name TEXT', 'failed_logins INTEGER NOT NULL DEFAULT 0', 'locked_until TEXT', 'picture TEXT']) {
     try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN ${col}`).run(); } catch (e) {}
   }
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_notif_reads (
@@ -116,7 +117,7 @@ export async function onRequestGet({ request, env }) {
       return j({ success: true, data: { notifications } });
     }
 
-    const acc = await db.prepare('SELECT balance, display_name, email FROM wallet_accounts WHERE address = ?').bind(address).first();
+    const acc = await db.prepare('SELECT balance, display_name, email, picture FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
 
     const txs = await db.prepare(
@@ -135,7 +136,7 @@ export async function onRequestGet({ request, env }) {
       amount: t.amount
     }));
 
-    return j({ success: true, address: address, balance: acc.balance, display_name: acc.display_name || '', email: acc.email || '', transactions: history });
+    return j({ success: true, address: address, balance: acc.balance, display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
   } catch (err) {
     return j({ error: err.message }, 500);
   }
@@ -215,7 +216,7 @@ export async function onRequestPost({ request, env }) {
     // ===== GOOGLE AUTH: pilih akun Google → PIN (nonce server-side, 10 menit) =====
     async function getPendingNonce(nonceRaw) {
       if (!nonceRaw) return null;
-      return await db.prepare("SELECT nonce, email, name FROM google_pending_tokens WHERE nonce = ? AND created_at > datetime('now', '-10 minutes')").bind(String(nonceRaw)).first();
+      return await db.prepare("SELECT nonce, email, name, picture FROM google_pending_tokens WHERE nonce = ? AND created_at > datetime('now', '-10 minutes')").bind(String(nonceRaw)).first();
     }
 
     if (action === 'google_verify') {
@@ -233,10 +234,11 @@ export async function onRequestPost({ request, env }) {
       if (Number(t.exp) * 1000 < Date.now()) return j({ error: 'Token Google kedaluwarsa' }, 401);
       const email = String(t.email).toLowerCase();
       const name = String(t.name || '').slice(0, 60);
+      const picture = String(t.picture || '').slice(0, 500);
       const acc = await db.prepare('SELECT address FROM wallet_accounts WHERE email = ?').bind(email).first();
       const nonce = randomSecret().slice(0, 48);
       await db.prepare('DELETE FROM google_pending_tokens WHERE email = ?').bind(email).run();
-      await db.prepare("INSERT INTO google_pending_tokens (nonce, email, name) VALUES (?, ?, ?)").bind(nonce, email, name).run();
+      await db.prepare("INSERT INTO google_pending_tokens (nonce, email, name, picture) VALUES (?, ?, ?, ?)").bind(nonce, email, name, picture).run();
       return j({ registered: !!acc, email: email, name: name, nonce: nonce });
     }
 
@@ -262,10 +264,14 @@ export async function onRequestPost({ request, env }) {
       }
       const secret = randomSecret();
       const secretHash = await sha256(secret);
-      await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
-      const p = await db.prepare('SELECT display_name FROM wallet_accounts WHERE address = ?').bind(acc.address).first();
+      if (row.picture) {
+        await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL, picture = ? WHERE address = ?').bind(secretHash, row.picture, acc.address).run();
+      } else {
+        await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
+      }
+      const p = await db.prepare('SELECT display_name, picture FROM wallet_accounts WHERE address = ?').bind(acc.address).first();
       await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
-      return j({ success: true, address: acc.address, secret: secret, display_name: (p && p.display_name) || '' });
+      return j({ success: true, address: acc.address, secret: secret, display_name: (p && p.display_name) || '', picture: (p && p.picture) || '' });
     }
 
     if (action === 'google_register') {
@@ -285,10 +291,10 @@ export async function onRequestPost({ request, env }) {
       if (bindAddr && ADDR_RE.test(bindAddr) && devSecret) {
         const acc = await db.prepare('SELECT secret_hash, email FROM wallet_accounts WHERE address = ?').bind(bindAddr).first();
         if (acc && acc.secret_hash === await sha256(devSecret) && !acc.email) {
-          await db.prepare('UPDATE wallet_accounts SET email = ?, pin_hash = ?, pin_salt = ?, display_name = COALESCE(NULLIF(display_name, \'\'), ?) WHERE address = ?')
-            .bind(email, pinHash, pinSalt, name, bindAddr).run();
+          await db.prepare('UPDATE wallet_accounts SET email = ?, pin_hash = ?, pin_salt = ?, display_name = COALESCE(NULLIF(display_name, \'\'), ?), picture = ? WHERE address = ?')
+            .bind(email, pinHash, pinSalt, name, row.picture || null, bindAddr).run();
           await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
-          return j({ success: true, bound: true, address: bindAddr });
+          return j({ success: true, bound: true, address: bindAddr, picture: row.picture || '' });
         }
       }
 
@@ -296,10 +302,10 @@ export async function onRequestPost({ request, env }) {
       while (await db.prepare('SELECT address FROM wallet_accounts WHERE address = ?').bind(address).first()) address = randomAddress();
       const secret = randomSecret();
       const secretHash = await sha256(secret);
-      await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, pin_hash, pin_salt, display_name) VALUES (?, ?, 0, ?, ?, ?, ?, ?)')
-        .bind(address, secretHash, 'user', email, pinHash, pinSalt, name || null).run();
+      await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, pin_hash, pin_salt, display_name, picture) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)')
+        .bind(address, secretHash, 'user', email, pinHash, pinSalt, name || null, row.picture || null).run();
       await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
-      return j({ success: true, address: address, secret: secret });
+      return j({ success: true, address: address, secret: secret, picture: row.picture || '' });
     }
 
     // ===== AUTH: register / login / sinkron profile =====

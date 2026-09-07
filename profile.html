@@ -14,6 +14,7 @@
     })();
     </script>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -1022,6 +1023,16 @@
                             localStorage.setItem('saved_user_name', d.display_name);
                         }
                         document.getElementById('profile-id-text').innerText = d.email || ('0x…' + addr.slice(-6));
+                        // foto asli akun Google — hanya dipakai kalau user belum upload avatar sendiri
+                        if (d.picture && localStorage.getItem('avatar_is_custom') !== '1') {
+                            localStorage.setItem('google_avatar_url', d.picture);
+                            const cur = localStorage.getItem('saved_user_avatar');
+                            if (cur !== d.picture) {
+                                localStorage.setItem('saved_user_avatar', d.picture);
+                                const avatarContainer = document.getElementById('profile-avatar-display');
+                                if (avatarContainer) avatarContainer.innerHTML = '<img src="' + d.picture + '" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">';
+                            }
+                        }
                     }
                 }).catch(function () {});
         }
@@ -1044,10 +1055,10 @@
             const identityEl = document.getElementById('identity-val');
             if (identityEl) identityEl.innerText = walletAddr || 'Belum ada alamat wallet';
 
-            let savedAvatar = localStorage.getItem('saved_user_avatar');
+            let savedAvatar = localStorage.getItem('saved_user_avatar') || localStorage.getItem('google_avatar_url');
             if (savedAvatar) {
                 const avatarContainer = document.getElementById('profile-avatar-display');
-                avatarContainer.innerHTML = `<img src="${savedAvatar}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
+                avatarContainer.innerHTML = `<img src="${savedAvatar}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">`;
             }
         }
 
@@ -1085,6 +1096,7 @@
                 reader.onload = function(e) {
                     const dataUrl = e.target.result;
                     localStorage.setItem('saved_user_avatar', dataUrl);
+                    localStorage.setItem('avatar_is_custom', '1');
                     const avatarContainer = document.getElementById('profile-avatar-display');
                     avatarContainer.innerHTML = `<img src="${dataUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
                 };
