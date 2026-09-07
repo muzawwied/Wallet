@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://wallet-muz.pages.dev https://www.googletagmanager.com https://*.google-analytics.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <script>if (top !== self) top.location = self.location;</script>
+
     <script>
     // Pagar dini: belum login → sembunyikan halaman & lempar ke auth SEBELUM konten tampil
     (function () {
@@ -682,6 +686,13 @@
             }
         });
 
+        function safeAvatarUrl(u) {
+            if (!u) return '';
+            if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(u)) return u;
+            if (/^https:\/\/[^\s"']+$/i.test(u)) return u;
+            return '';
+        }
+
         function logoutAkun() {
             ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name'].forEach(function (k) {
                 localStorage.removeItem(k);
@@ -825,7 +836,7 @@
                             if (cur !== d.picture) {
                                 localStorage.setItem('saved_user_avatar', d.picture);
                                 const avatarContainer = document.getElementById('profile-avatar-display');
-                                if (avatarContainer) avatarContainer.innerHTML = '<img src="' + d.picture + '" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">';
+                                if (avatarContainer) avatarContainer.innerHTML = '<img src="' + safeAvatarUrl(d.picture) + '" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">';
                             }
                         }
                     }
@@ -848,7 +859,7 @@
             let savedAvatar = localStorage.getItem('saved_user_avatar') || localStorage.getItem('google_avatar_url');
             if (savedAvatar) {
                 const avatarContainer = document.getElementById('profile-avatar-display');
-                avatarContainer.innerHTML = `<img src="${savedAvatar}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">`;
+                avatarContainer.innerHTML = `<img src="${safeAvatarUrl(savedAvatar)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" referrerpolicy="no-referrer">`;
             }
         }
 
@@ -888,7 +899,7 @@
                     localStorage.setItem('saved_user_avatar', dataUrl);
                     localStorage.setItem('avatar_is_custom', '1');
                     const avatarContainer = document.getElementById('profile-avatar-display');
-                    avatarContainer.innerHTML = `<img src="${dataUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
+                    avatarContainer.innerHTML = `<img src="${safeAvatarUrl(dataUrl)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">`;
                 };
                 reader.readAsDataURL(file);
             }
