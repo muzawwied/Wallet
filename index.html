@@ -1061,7 +1061,7 @@
         let walletAddress = '';
         let walletSecret = '';
         const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
-            ? 'https://wallet-43a.pages.dev' : location.origin;
+            ? 'https://wallet-muz.pages.dev' : location.origin;
         const API = WALLET_API + '/api/wallet';
         // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
         (function requireAuth() {
@@ -1113,19 +1113,13 @@
                     walletSecret = res.secret;
                     localStorage.setItem('user_wallet_secret', res.secret);
                 } else if (res.error) {
-                    // alamat bentrok perangkat lain → buat baru (sekali)
-                    savedAddress = generateRandomWalletAddress();
-                    localStorage.setItem('user_wallet_address', savedAddress);
-                    walletAddress = savedAddress;
-                    const res2 = await fetch(API, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'init', address: savedAddress })
-                    }).then(r => r.json());
-                    if (res2.success && res2.secret) {
-                        walletSecret = res2.secret;
-                        localStorage.setItem('user_wallet_secret', res2.secret);
-                    }
+                    // alamat sudah diklaim / sesi perangkat basi → masuk ulang (Google + PIN),
+                    // JANGAN diam-diam buat alamat baru (mencegah dompet tertukar)
+                    localStorage.removeItem('user_wallet_secret');
+                    localStorage.removeItem('user_wallet_address');
+                    localStorage.setItem('user_logged_in', '0');
+                    window.location.replace(SITE_BASE + 'auth.html');
+                    return;
                 }
             } catch (e) {}
             

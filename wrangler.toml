@@ -1,8 +1,8 @@
-name = "wallet"
+name = "wallet-muz"
 compatibility_date = "2024-09-01"
 pages_build_output_dir = "."
 
 [[d1_databases]]
 binding = "DB"
 database_name = "wallet-db"
-database_id = "ebecc182-4646-4ffc-ba1c-8964226122cc"
+database_id = "59e17832-235d-4bb4-b09e-a7f5f9c1f8db"

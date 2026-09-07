@@ -287,7 +287,7 @@
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
         const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
-            ? 'https://wallet-43a.pages.dev' : location.origin;
+            ? 'https://wallet-muz.pages.dev' : location.origin;
         const API = WALLET_API + '/api/wallet';
         function getWalletAddr() {
             try { return localStorage.getItem('user_wallet_address') || ''; } catch (e) { return ''; }
