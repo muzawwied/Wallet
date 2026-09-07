@@ -690,45 +690,7 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Security Key 1</label>
-                    <div class="form-input-wrapper">
-                        <div class="form-input" id="key1" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">aK9#mL2@vP5$xN8*jB4&cW1^yT7!qR0</div>
-                        <button class="icon-btn" onclick="copyText('key1', this)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Security Key 2</label>
-                    <div class="form-input-wrapper">
-                        <div class="form-input" id="key2" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">Z3&xV9@pM2$kL5#vN8*jB4&cW1^yT7!</div>
-                        <button class="icon-btn" onclick="copyText('key2', this)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Security Key 3</label>
-                    <div class="form-input-wrapper">
-                        <div class="form-input" id="key3" style="font-family: monospace; word-break: break-all; font-size: 0.9rem; line-height: 1.4;">Q1^yT7!x9Qp@mZ2$kL5#vN8*jB4&cW1</div>
-                        <button class="icon-btn" onclick="copyText('key3', this)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
+</div>
         </div>
 
         <div id="view-security" class="page-view">
@@ -807,26 +769,12 @@
                     </div>
                     <div class="faq-answer">
                         <div class="faq-answer-inner">
-                            Anda dapat mereset PIN menggunakan Security Key yang telah diberikan saat pembuatan akun pada perangkat utama Anda.
+                            Silakan hubungi tim dukungan ClincooPay melalui email untuk mereset PIN Anda.
                         </div>
                     </div>
                 </div>
 
-                <div class="faq-item" onclick="toggleFaq(this)">
-                    <div class="faq-question">
-                        <span>Apa itu Security Key?</span>
-                        <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </div>
-                    <div class="faq-answer">
-                        <div class="faq-answer-inner">
-                            Security Key adalah deretan kode unik yang dienkripsi secara statis sebagai akses pemulihan tingkat tertinggi untuk identitas Anda.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="faq-item" onclick="toggleFaq(this)">
+<div class="faq-item" onclick="toggleFaq(this)">
                     <div class="faq-question">
                         <span>Bagaimana jika akses terkunci?</span>
                         <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1035,7 +983,7 @@
             try {
                 const a = localStorage.getItem('user_wallet_address');
                 const s = localStorage.getItem('user_wallet_secret');
-                if (!a || !s) { window.location.replace('auth.html'); throw new Error('redirect'); }
+                if (!a || !s || localStorage.getItem('user_logged_in') !== '1') { window.location.replace('auth.html'); throw new Error('redirect'); }
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
         const API_BASE = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')

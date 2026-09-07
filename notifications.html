@@ -261,7 +261,7 @@
             try {
                 const a = localStorage.getItem('user_wallet_address');
                 const s = localStorage.getItem('user_wallet_secret');
-                if (!a || !s) { window.location.replace('auth.html'); throw new Error('redirect'); }
+                if (!a || !s || localStorage.getItem('user_logged_in') !== '1') { window.location.replace('auth.html'); throw new Error('redirect'); }
             } catch (e) { if (String(e.message) === 'redirect') throw e; }
         })();
         const WALLET_API = (location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:')
