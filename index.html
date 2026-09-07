@@ -950,7 +950,7 @@
         
         <div id="subpage-terima" class="sub-page">
             <div class="qr-wrapper">
-                <div id="wallet-qrcode" class="square-qr-svg"></div>
+                <div id="wallet-qrcode" class="square-qr-svg"><div class="shimmer-bar" style="width:220px;height:220px;border-radius:12px;"></div></div>
 
                 <div class="wallet-address-container">
                     <span class="wallet-address-label">Alamat Wallet</span>
@@ -1137,16 +1137,18 @@
             }
             
             const qrContainer = document.getElementById('wallet-qrcode');
-            if (qrContainer) {
-                qrContainer.innerHTML = '';
-                new QRCode(qrContainer, {
-                    text: walletAddress,
-                    width: 512,
-                    height: 512,
-                    colorDark : "#0f172a",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
+            if (qrContainer && typeof QRCode !== 'undefined') {
+                try {
+                    qrContainer.innerHTML = '';
+                    new QRCode(qrContainer, {
+                        text: walletAddress,
+                        width: 512,
+                        height: 512,
+                        colorDark : "#0f172a",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                } catch (e) {}
             }
         }
 
@@ -1437,7 +1439,7 @@
 
         function updateURL(pageName, subPageName) {
             try {
-                let newPath = `/${pageName}`;
+                let newPath = `${SITE_BASE}${pageName}`;
                 if (pageName === 'transaksi' && subPageName) {
                     newPath += `/${subPageName}`;
                 }
