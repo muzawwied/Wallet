@@ -496,10 +496,14 @@
                     };
                     document.head.appendChild(gs);
                 } else {
-                    document.getElementById('google-fallback-note').style.display = 'block';
+                    const n = document.getElementById('google-fallback-note');
+                    n.style.display = 'block';
+                    console.error('Konfig Google tidak valid:', d);
                 }
             } catch (e) {
-                document.getElementById('google-fallback-note').style.display = 'block';
+                const n = document.getElementById('google-fallback-note');
+                n.style.display = 'block';
+                console.error('Gagal memuat tombol Google:', e);
             }
         }
 
