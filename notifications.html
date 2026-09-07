@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+    // Pagar dini: belum login → sembunyikan halaman & lempar ke auth SEBELUM konten tampil
+    (function () {
+        try {
+            var v = function (k) { var x = localStorage.getItem(k); return (!x || x === 'undefined' || x === 'null') ? null : x; };
+            if (!v('user_wallet_address') || !v('user_wallet_secret') || localStorage.getItem('user_logged_in') !== '1') {
+                document.documentElement.style.display = 'none';
+                location.replace('auth.html');
+            }
+        } catch (e) {}
+    })();
+    </script>
     <meta charset="UTF-8">
         // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
         window.addEventListener('pageshow', function (e) {
