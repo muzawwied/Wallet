@@ -436,6 +436,11 @@
             if (target) target.classList.add('active');
             const titleEl = document.getElementById('auth-title-text');
             const subTitleEl = document.getElementById('auth-subtitle-text');
+            const logoEl = document.getElementById('auth-logo');
+            const hideHero = (viewName === 'create-pin');
+            if (logoEl) logoEl.style.display = hideHero ? 'none' : 'block';
+            if (titleEl) titleEl.style.display = hideHero ? 'none' : 'block';
+            if (subTitleEl) subTitleEl.style.display = hideHero ? 'none' : 'block';
             if (viewName === 'loading') {
                 titleEl.textContent = 'Memproses...';
                 subTitleEl.textContent = 'Mohon tunggu sebentar.';
