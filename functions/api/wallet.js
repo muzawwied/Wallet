@@ -251,6 +251,9 @@ export async function onRequestPost({ request, env }) {
       if (!/^[A-Za-z0-9]{10}$/.test(displayId)) return j({ error: 'ID Wallet tidak ditemukan — cek kembali 10 karakter ID di profil Wallet' }, 404);
       const acc = await db.prepare('SELECT address FROM wallet_accounts WHERE display_id = ?').bind(displayId).first();
       if (!acc) return j({ error: 'ID Wallet tidak ditemukan — cek kembali 10 karakter ID di profil Wallet' }, 404);
+      // dedupe: kalau masih ada permintaan pending (<10 menit) utk alamat+app sama, pakai itu — jangan bikin dobel
+      const existing = await db.prepare("SELECT id FROM wallet_connect_requests WHERE address = ? AND app = ? AND status = 'pending' AND created_at > datetime('now', '-10 minutes') ORDER BY created_at DESC LIMIT 1").bind(acc.address, app).first();
+      if (existing) return j({ success: true, request_id: existing.id });
       const rid = 'CR-' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
       await db.prepare('INSERT INTO wallet_connect_requests (id, address, app) VALUES (?, ?, ?)').bind(rid, acc.address, app).run();
       return j({ success: true, request_id: rid });

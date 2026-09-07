@@ -410,9 +410,12 @@
                 const reqHtml = reqs.map(connectReqMarkup).join('');
                 if (reqHtml) {
                     const section = document.getElementById('notif-section');
-                    renderList(_rendered);
-                    if (section && !_rendered.length) section.innerHTML = emptyMarkup();
-                    if (section) section.insertAdjacentHTML('afterbegin', '<div class="notif-date-group">Permintaan Koneksi</div>' + reqHtml);
+                    if (section) {
+                        // kalau ada permintaan koneksi: jangan tampilkan empty state walau notif biasa kosong
+                        section.innerHTML = '';
+                        if (_rendered.length) renderList(_rendered);
+                        section.insertAdjacentHTML('afterbegin', '<div class="notif-date-group">Permintaan Koneksi</div>' + reqHtml);
+                    }
                 } else {
                     renderList(_rendered);
                 }
