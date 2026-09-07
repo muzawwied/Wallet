@@ -4,3 +4,7 @@
 /transaksi / 200
 /transaksi/* / 200
 /favicon.ico /logo.png 200
+/profile/security /profile/ 200
+/profile/security/ /profile/ 200
+/profile/help /profile/ 200
+/profile/help/ /profile/ 200

@@ -1615,6 +1615,13 @@
             let page = 'dompet';
             let sub = 'kirim';
 
+            const _qp = new URLSearchParams(location.search);
+            const _qpPage = _qp.get('page');
+            if (_qpPage && validPages.includes(_qpPage)) {
+                page = _qpPage;
+                const _qpSub = _qp.get('sub');
+                if (page === 'transaksi' && _qpSub) sub = _qpSub;
+            } else
             for (let i = 0; i < pathParts.length; i++) {
                 if (validPages.includes(pathParts[i])) {
                     page = pathParts[i];

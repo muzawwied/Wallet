@@ -1,22 +1,35 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet</title>
-    <style>
-        html, body { margin: 0; padding: 0; background: #ffffff; }
-    </style>
-    <script>
-        (function () {
-            var base = location.hostname.indexOf('github.io') !== -1 ? '/Wallet' : '';
-            location.replace(base + '/');
-        })();
-    </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClincooPay - Halaman tidak ditemukan</title>
 </head>
-<body>
-    <noscript>
-        <meta http-equiv="refresh" content="0; url=/Wallet/">
-    </noscript>
+<body style="font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;color:#111;">
+<div style="padding:24px;">
+    <div style="font-size:44px;margin-bottom:10px;">🔍</div>
+    <h1 style="font-size:20px;margin:0 0 8px;font-weight:700;">Halaman tidak ditemukan</h1>
+    <p style="color:#555;font-size:14px;margin:0 0 20px;">Alamat yang kamu buka tidak tersedia.</p>
+    <a id="home" href="/" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:10px;">Kembali ke Dompet</a>
+</div>
+<script>
+// GitHub Pages tidak mendukung rewrite server, jadi URL virtual (pushState SPA)
+// menghasilkan 404 saat di-refresh / dibuka langsung. Halaman ini memulihkannya:
+// pola yang dikenal dialihkan ke URL asli + query, lalu halaman tujuan merestore view-nya.
+(function () {
+    var base = location.hostname.indexOf('github.io') !== -1 ? '/Wallet' : '';
+    document.getElementById('home').href = base + '/';
+    var p = location.pathname, m;
+    if ((m = p.match(/\/profile\/(security|help)\/?$/))) {
+        location.replace(base + '/profile/?view=' + m[1]); return;
+    }
+    if ((m = p.match(/\/(dompet|scan|riwayat)\/?$/))) {
+        location.replace(base + '/?page=' + m[1]); return;
+    }
+    if ((m = p.match(/\/transaksi(?:\/([\w-]+))?\/?$/))) {
+        location.replace(base + '/?page=transaksi' + (m[1] ? '&sub=' + m[1] : '')); return;
+    }
+})();
+</script>
 </body>
 </html>

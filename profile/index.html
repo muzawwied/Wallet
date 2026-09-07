@@ -899,9 +899,19 @@
         setInterval(function () { if (!document.hidden) syncProfileFromServer(); }, 10000); // real-time
         syncProfileFromServer();
         
-        if (!window.history.state) {
-            window.history.replaceState({ view: 'view-profile' }, '', _BASE + '/profile/');
-        }
+        // Pulihkan sub-halaman (Keamanan/Pusat Bantuan) saat refresh/dibuka langsung:
+        // dari ?view= ( hasil pemulihan 404 di GitHub Pages ) atau segmen path ( rewrite Cloudflare ).
+        (function restoreViewFromUrl() {
+            var valid = ['security', 'help'];
+            var params = new URLSearchParams(location.search);
+            var seg = location.pathname.split('/').filter(Boolean).pop();
+            var name = params.get('view') || (valid.indexOf(seg) !== -1 ? seg : null);
+            if (name && valid.indexOf(name) !== -1) {
+                switchView('view-' + name, true); // URL dibiarkan apa adanya
+            } else if (!window.history.state) {
+                window.history.replaceState({ view: 'view-profile' }, '', _BASE + '/profile/');
+            }
+        })();
     </script>
 </body>
 </html>
