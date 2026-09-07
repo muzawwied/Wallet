@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebijakan Privasi — Wallet</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-color: #ffffff; --text-main: #0f172a; --text-muted: #64748b; --accent-blue: #38bdf8; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); min-height: 100vh; padding: 24px 16px 48px; }
+        .wrap { max-width: 720px; margin: 0 auto; }
+        .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+        .logo-row img { width: 36px; height: 36px; }
+        .logo-row span { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.02em; }
+        h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+        .updated { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 28px; }
+        h2 { font-size: 1rem; font-weight: 600; margin: 22px 0 8px; }
+        p, li { font-size: 0.9rem; line-height: 1.65; color: var(--text-main); }
+        ul { padding-left: 20px; margin: 4px 0 8px; }
+        a { color: var(--accent-blue); text-decoration: none; font-weight: 500; }
+        .back { display: inline-block; margin-top: 32px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="logo-row"><img src="logo.png" alt="Wallet"><span>Wallet</span></div>
+        <h1>Kebijakan Privasi</h1>
+        <p class="updated">Terakhir diperbarui: 8 September 2026</p>
+        <h2>1. Data yang Kami Kumpulkan</h2>
+        <ul>
+            <li>Data akun: nama tampilan dan alamat email akun Google Anda.</li>
+            <li>Data transaksi: riwayat transfer internal antar pengguna (alamat dompet, nominal, catatan, waktu).</li>
+            <li>Data teknis: alamat IP untuk pembatasan laju permintaan (rate limiting) dan keamanan layanan.</li>
+        </ul>
+        <h2>2. Penggunaan Data</h2>
+        <p>Data digunakan semata-mata untuk menjalankan layanan: memproses transaksi, mengautentikasi akun, mengamankan sistem dari penyalahgunaan, dan menampilkan riwayat transaksi Anda.</p>
+        <h2>3. Penyimpanan &amp; Keamanan</h2>
+        <p>Data disimpan di basis data Cloudflare D1. Kunci dompet disimpan dalam bentuk hash (SHA-256) dan PIN di-hash dengan PBKDF2 — keduanya tidak dapat dibaca dalam bentuk aslinya.</p>
+        <h2>4. Berbagi Data</h2>
+        <p>Kami tidak menjual atau membagikan data pribadi Anda kepada pihak ketiga, kecuali diwajibkan oleh hukum.</p>
+        <h2>5. Hak Anda</h2>
+        <p>Anda dapat meminta penghapusan akun dan data terkait dengan menghubungi kami melalui email dukungan.</p>
+        <a class="back" href="auth.html">&larr; Kembali masuk</a>
+    </div>
+</body>
+</html>

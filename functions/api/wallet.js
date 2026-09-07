@@ -177,7 +177,10 @@ export async function onRequestGet({ request, env }) {
   } catch (err) {
     console.error('wallet api error:', err && err.message);
     return JR({ error: 'Terjadi kesalahan server. Coba lagi.' }, 500);
-  }function onRequestPost({ request, env }) {
+  }
+}
+
+export async function onRequestPost({ request, env }) {
   const JR = (d, st) => j(d, st, request);
   if (!rateLimit('ip:' + clientKey(request) + ':post', 90, 60000)) return JR({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, 429);
   const db = env.DB;
