@@ -250,7 +250,7 @@ export async function onRequestPost({ request, env }) {
 
       if (!ADDR_RE.test(from) || !ADDR_RE.test(to)) return j({ error: 'Alamat pengirim/penerima tidak valid' }, 400);
       if (from === to) return j({ error: 'Tidak bisa kirim ke alamat sendiri' }, 400);
-      if (!amount || amount < 1000) return j({ error: 'Minimal kirim Rp 1.000' }, 400);
+      if (!amount || amount < 1) return j({ error: 'Nominal tidak valid — harus lebih dari 0' }, 400);
 
       const sender = await db.prepare('SELECT * FROM wallet_accounts WHERE address = ?').bind(from).first();
       if (!sender) return j({ error: 'Akun pengirim tidak ditemukan — muat ulang halaman.' }, 404);

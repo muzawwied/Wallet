@@ -608,6 +608,8 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: fa2spin .7s linear infinite; margin-right: 8px; vertical-align: -3px; }
         .btn-submit:active {
             transform: scale(0.98);
         }
@@ -1331,8 +1333,8 @@
                 if (errEl) errEl.textContent = 'Tidak bisa kirim ke alamat sendiri.';
                 return;
             }
-            if (isNaN(amountVal) || amountVal < 1000) {
-                if (errEl) errEl.textContent = 'Minimal kirim Rp 1.000.';
+            if (isNaN(amountVal) || amountVal < 1) {
+                if (errEl) errEl.textContent = 'Nominal tidak valid — masukkan angka lebih dari 0.';
                 return;
             }
             if (amountVal > currentBalance) {
@@ -1342,7 +1344,7 @@
 
             askTxPin(async function (pin) {
                 const btn = document.querySelector('#page-kirim .btn-submit, .btn-submit');
-                if (btn) { btn.disabled = true; }
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Mengirim…'; }
 
                 try {
                     const res = await fetch(API, {
@@ -1364,7 +1366,7 @@
                 } catch (e) {
                     if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
                 } finally {
-                    if (btn) { btn.disabled = false; }
+                    if (btn) { btn.disabled = false; btn.innerHTML = 'Lanjutkan'; }
                 }
             });
         }
