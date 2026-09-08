@@ -1188,10 +1188,10 @@
                     stateLoaded = true;
                     // 2FA: cache flag (buat kunci instan saat reload) + tampilkan kunci PIN kalau aktif
                     try {
-                        localStorage.setItem('wallet_fa2', res.fa2 ? '1' : '0');
+                        localStorage.setItem('wallet_fa2', res.fa2 ? (res.fa2_totp ? 'totp' : 'pin') : '0');
                         localStorage.setItem('wallet_fa2_for', walletAddress);
                     } catch (e) {}
-                    if (res.fa2) showFa2Lock();
+                    if (res.fa2) showFa2Lock(res.fa2_totp ? 'totp' : 'pin');
                     currentBalance = res.balance || 0;
                     transactions = (res.transactions || []).map(t => ({
                         id: t.id,
@@ -1601,8 +1601,10 @@
 
         // ===== 2FA: layar kunci PIN — diminta sekali per sesi tab (sessionStorage) =====
         let _fa2Pin = '';
+        let _fa2Mode = 'pin';
         function _fa2Unlocked() { try { return sessionStorage.getItem('wallet_fa2_unlocked') === '1'; } catch (e) { return false; } }
-        function showFa2Lock() {
+        function showFa2Lock(mode) {
+            _fa2Mode = mode === 'totp' ? 'totp' : 'pin';
             if (_fa2Unlocked() || document.getElementById('fa2-lock')) return;
             const ov = document.createElement('div');
             ov.id = 'fa2-lock';
@@ -1614,10 +1616,15 @@
                 else if (k === 'del') { pad += '<button type="button" onclick="fa2Key(\'del\')" style="width:64px;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;">⌫</button>'; }
                 else { pad += '<button type="button" onclick="fa2Key(\'' + k + '\')" style="width:64px;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;">' + k + '</button>'; }
             });
+            const isTotp = _fa2Mode === 'totp';
             ov.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
-                '<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">Masukkan PIN</div>' +
-                '<div style="font-size:0.82rem;color:#64748b;margin-top:4px;margin-bottom:20px;">PIN dibutuhkan untuk membuka Wallet</div>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;">' +
+                (isTotp
+                    ? '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>'
+                    : '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>') +
+                '</svg>' +
+                '<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">' + (isTotp ? 'Masukkan Kode Autentikator' : 'Masukkan PIN') + '</div>' +
+                '<div style="font-size:0.82rem;color:#64748b;margin-top:4px;margin-bottom:20px;">' + (isTotp ? 'Kode 6 digit dari Google Authenticator' : 'PIN dibutuhkan untuk membuka Wallet') + '</div>' +
                 '<div id="fa2-dots" style="display:flex;gap:12px;margin-bottom:18px;">' +
                     '<span style="width:12px;height:12px;border-radius:50%;background:#e2e8f0;"></span>'.repeat(6) +
                 '</div>' +
@@ -1641,8 +1648,11 @@
             const addr = localStorage.getItem('user_wallet_address') || '';
             const sec = localStorage.getItem('user_wallet_secret') || '';
             if (!addr || !sec) { window.location.replace(SITE_BASE + 'auth/'); return; }
+            const payload = _fa2Mode === 'totp'
+                ? { action: 'totp_verify', address: addr, code: _fa2Pin }
+                : { action: 'pin_verify', address: addr, pin: _fa2Pin };
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
-                body: JSON.stringify({ action: 'pin_verify', address: addr, pin: _fa2Pin })
+                body: JSON.stringify(payload)
             }).then(r => r.json()).then(d => {
                 if (d && d.success) {
                     try { sessionStorage.setItem('wallet_fa2_unlocked', '1'); } catch (e) {}
@@ -1650,7 +1660,7 @@
                     _fa2Pin = '';
                 } else {
                     const err = document.getElementById('fa2-error');
-                    if (err) err.textContent = (d && d.error) || 'PIN salah — coba lagi';
+                    if (err) err.textContent = (d && d.error) || (_fa2Mode === 'totp' ? 'Kode salah — coba lagi' : 'PIN salah — coba lagi');
                     _fa2Pin = ''; fa2RenderDots();
                 }
             }).catch(() => {
@@ -1686,10 +1696,11 @@
             renderHistory(); // stateLoaded=false → skeleton shimmer tampil SEGERA di riwayat & home
             // 2FA: kalau flag terakhir aktif utk akun ini → kunci tampil DETIK PERTAMA (tanpa nunggu server)
             try {
-                if (localStorage.getItem('wallet_fa2') === '1' &&
+                const _fa2m = localStorage.getItem('wallet_fa2');
+                if ((_fa2m === 'totp' || _fa2m === 'pin') &&
                     localStorage.getItem('wallet_fa2_for') === (localStorage.getItem('user_wallet_address') || '').toLowerCase() &&
                     localStorage.getItem('user_logged_in') === '1') {
-                    showFa2Lock();
+                    showFa2Lock(_fa2m);
                 }
             } catch (e) {}
             await initWalletAddress();

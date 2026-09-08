@@ -50,6 +50,9 @@ async function ensureSchema(db) {
   )`).run();
   try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN display_id TEXT`).run(); } catch (e) {}
   try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN fa2 INTEGER NOT NULL DEFAULT 0`).run(); } catch (e) {}
+  for (const col of ['totp_secret TEXT', 'totp_enabled INTEGER NOT NULL DEFAULT 0']) {
+    try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN ${col}`).run(); } catch (e) {}
+  }
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     address TEXT NOT NULL,
@@ -100,6 +103,37 @@ function sha256(text) {
 }
 
 const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
+
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function randomBase32(len = 32) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) out += B32[b & 31];
+  return out;
+}
+function base32Decode(str) {
+  let bits = 0, value = 0;
+  const out = [];
+  for (const ch of String(str || '').toUpperCase().replace(/[^A-Z2-7]/g, '')) {
+    value = (value << 5) | B32.indexOf(ch);
+    bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+async function totpCode(secret, offset = 0) {
+  const keyBytes = base32Decode(secret);
+  const counter = Math.floor(Date.now() / 30000) + offset;
+  const msg = new Uint8Array(8);
+  let v = counter;
+  for (let i = 7; i >= 0; i--) { msg[i] = v % 256; v = Math.floor(v / 256); }
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, msg));
+  const off = sig[sig.length - 1] & 0xf;
+  const code = (((sig[off] & 0x7f) << 24) | (sig[off + 1] << 16) | (sig[off + 2] << 8) | sig[off + 3]) % 1000000;
+  return String(code).padStart(6, '0');
+}
 
 async function logActivity(db, address, kind, detail) {
   try {
@@ -155,7 +189,7 @@ export async function onRequestGet({ request, env }) {
       return j({ success: true, data: { notifications, connect_requests: (pend.results || []).map(p => ({ id: p.id, app: p.app, created_at: p.created_at })) } });
     }
 
-    const acc = await db.prepare('SELECT balance, display_name, email, picture, display_id, fa2, pin_hash, pin_salt FROM wallet_accounts WHERE address = ?').bind(address).first();
+    const acc = await db.prepare('SELECT balance, display_name, email, picture, display_id, fa2, totp_enabled, pin_hash, pin_salt FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
 
     const txs = await db.prepare(
@@ -174,7 +208,7 @@ export async function onRequestGet({ request, env }) {
       amount: t.amount
     }));
 
-    return j({ success: true, address: address, balance: acc.balance, display_id: acc.display_id || '', fa2: !!acc.fa2, has_pin: !!(acc.pin_hash && acc.pin_salt), display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
+    return j({ success: true, address: address, balance: acc.balance, display_id: acc.display_id || '', fa2: !!acc.fa2, fa2_totp: !!acc.totp_enabled, has_pin: !!(acc.pin_hash && acc.pin_salt), display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
   } catch (err) {
     return j({ error: err.message }, 500);
   }
@@ -611,6 +645,83 @@ export async function onRequestPost({ request, env }) {
       if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid' }, 401);
       if (kind !== 'logout') return j({ error: 'Jenis aktivitas tidak dikenal' }, 400);
       await logActivity(db, address, kind, 'Keluar dari akun');
+      return j({ success: true });
+    }
+
+    // ===== 2FA TOTP (Google Authenticator): mulai setup — kirim secret + otpauth utk QR =====
+    if (action === 'totp_setup') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, email, totp_enabled FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      if (acc.totp_enabled) return j({ error: '2FA sudah aktif — matikan dulu untuk mengatur ulang' }, 409);
+      const totpSecret = randomBase32(32);
+      await db.prepare('UPDATE wallet_accounts SET totp_secret = ? WHERE address = ?').bind(totpSecret, address).run();
+      const label = acc.email ? 'Wallet:' + acc.email : 'Wallet';
+      const otpauth = 'otpauth://totp/' + encodeURIComponent(label) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('Wallet') + '&algorithm=SHA1&digits=6&period=30';
+      return j({ success: true, secret: totpSecret, otpauth: otpauth });
+    }
+
+    // ===== 2FA TOTP: verifikasi kode — dipakai untuk mengaktifkan & membuka app =====
+    if (action === 'totp_verify') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      const code = String(body.code || '').trim();
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, totp_secret, totp_enabled, failed_logins, locked_until FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      if (acc.locked_until && Date.now() < new Date(acc.locked_until + 'Z').getTime()) return j({ error: 'Terlalu banyak percobaan. Coba lagi dalam ' + Math.ceil((new Date(acc.locked_until + 'Z').getTime() - Date.now()) / 60000) + ' menit.' }, 423);
+      if (!acc.totp_secret) return j({ error: '2FA belum disiapkan — aktifkan di halaman Keamanan' }, 400);
+      if (!/^\d{6}$/.test(code)) return j({ error: 'Kode harus 6 digit angka' }, 400);
+      let ok = false;
+      for (const off of [-1, 0, 1]) { if ((await totpCode(acc.totp_secret, off)) === code) { ok = true; break; } }
+      if (!ok) {
+        const fails = (acc.failed_logins || 0) + 1;
+        if (fails >= 5) {
+          await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(address).run();
+          return j({ error: 'Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, address).run();
+        return j({ error: 'Kode salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      await db.prepare('UPDATE wallet_accounts SET failed_logins = 0, locked_until = NULL WHERE address = ?').bind(address).run();
+      if (!acc.totp_enabled) {
+        await db.prepare('UPDATE wallet_accounts SET totp_enabled = 1, fa2 = 1 WHERE address = ?').bind(address).run();
+        await logActivity(db, address, 'fa2', '2FA diaktifkan (Google Authenticator)');
+        return j({ success: true, enabled: true });
+      }
+      return j({ success: true });
+    }
+
+    // ===== 2FA TOTP: matikan — wajib kode Authenticator (atau PIN sebagai cadangan) =====
+    if (action === 'totp_disable') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      const code = String(body.code || '').trim();
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, totp_secret, totp_enabled, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      if (!acc.totp_enabled) return j({ error: '2FA sedang tidak aktif' }, 400);
+      if (acc.locked_until && Date.now() < new Date(acc.locked_until + 'Z').getTime()) return j({ error: 'Terlalu banyak percobaan. Coba lagi dalam ' + Math.ceil((new Date(acc.locked_until + 'Z').getTime() - Date.now()) / 60000) + ' menit.' }, 423);
+      if (!/^\d{6}$/.test(code)) return j({ error: 'Masukkan kode 6 digit' }, 400);
+      let ok = false;
+      for (const off of [-1, 0, 1]) { if ((await totpCode(acc.totp_secret, off)) === code) { ok = true; break; } }
+      if (!ok && acc.pin_hash && acc.pin_salt && (await hashPin(code, acc.pin_salt)) === acc.pin_hash) ok = true;
+      if (!ok) {
+        const fails = (acc.failed_logins || 0) + 1;
+        if (fails >= 5) {
+          await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(address).run();
+          return j({ error: 'Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.' }, 423);
+        }
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, address).run();
+        return j({ error: 'Kode salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      await db.prepare("UPDATE wallet_accounts SET totp_enabled = 0, fa2 = 0, totp_secret = NULL, failed_logins = 0, locked_until = NULL WHERE address = ?").bind(address).run();
+      await logActivity(db, address, 'fa2', '2FA dimatikan (Google Authenticator)');
       return j({ success: true });
     }
 

@@ -548,7 +548,7 @@
                     <div class="toggle-item">
                         <div>
                             <div style="font-size: 0.9rem; font-weight: 500; color: var(--text-main);">Autentikasi 2-Langkah (2FA)</div>
-                            <div id="fa2-note" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Minta PIN setiap kali aplikasi dibuka</div>
+                            <div id="fa2-note" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Kode 6 digit dari Google Authenticator tiap aplikasi dibuka</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="fa2-toggle" onchange="onToggle2fa(this)">
@@ -629,6 +629,48 @@
             </div>
         </div>
 
+        <div id="view-2fa" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="cancel2fa()" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Autentikasi 2-Langkah</span>
+            </div>
+            <div class="settings-content">
+                <div id="fa2-setup-section">
+                    <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6;">
+                        1. Buka aplikasi <b>Google Authenticator</b> di HP kamu<br>
+                        2. Tekan tombol + lalu pilih <b>Pindai kode QR</b><br>
+                        3. Pindai kode di bawah, lalu masukkan kode 6 digit yang muncul
+                    </div>
+                    <div id="fa2-qr" style="display: flex; justify-content: center; margin: 18px 0; padding: 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;"></div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 6px;">Tidak bisa memindai? Masukkan kode ini manual di Authenticator:</div>
+                    <div id="fa2-secret-text" style="font-family: monospace; font-size: 0.8rem; text-align: center; word-break: break-all; padding: 10px; background-color: #f8fafc; border-radius: 10px; margin-bottom: 16px;"></div>
+                    <div class="form-group">
+                        <label class="form-label">Kode dari Authenticator</label>
+                        <input id="fa2-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="6 digit angka" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
+                    </div>
+                    <div id="fa2-form-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
+                    <button type="button" onclick="confirm2faSetup()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Verifikasi &amp; Aktifkan</button>
+                </div>
+                <div id="fa2-disable-section" style="display: none;">
+                    <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6;">
+                        Masukkan kode 6 digit dari <b>Google Authenticator</b> untuk mematikan 2FA.<br>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">HP autentikator hilang? Masukkan PIN kamu sebagai gantinya.</span>
+                    </div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label class="form-label">Kode Authenticator / PIN</label>
+                        <input id="fa2-disable-input" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
+                    </div>
+                    <div id="fa2-disable-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
+                    <button type="button" onclick="confirm2faDisable()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Matikan 2FA</button>
+                </div>
+            </div>
+        </div>
+
         <div id="view-help" class="page-view">
             <div class="scanner-header">
                 <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
@@ -688,6 +730,8 @@
 
     </div>
 
+    <!-- qrcode-generator (MIT) — hanya untuk menampilkan QR setup Google Authenticator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script>
         let currentPin = '';
 
@@ -845,13 +889,13 @@
         }
 
         // ===== KEAMANAN: state PIN & 2FA dari server =====
-        let _hasPin = false, _fa2 = false;
+        let _hasPin = false, _fa2 = false, _fa2Totp = false;
 
         function refreshSecurityUi() {
             const t = document.getElementById('fa2-toggle');
             if (t) t.checked = _fa2;
             const note = document.getElementById('fa2-note');
-            if (note) note.textContent = _fa2 ? 'Aktif — PIN diminta setiap aplikasi dibuka' : 'Minta PIN setiap kali aplikasi dibuka';
+            if (note) note.textContent = _fa2 ? (_fa2Totp ? 'Aktif — kode Google Authenticator diminta setiap aplikasi dibuka' : 'Aktif — PIN diminta setiap aplikasi dibuka') : 'Kode 6 digit dari Google Authenticator tiap aplikasi dibuka';
             const st = document.getElementById('pin-status-text');
             if (st) st.textContent = _hasPin ? 'PIN terpasang' : 'Belum ada PIN';
             const pb = document.getElementById('pin-edit-btn');
@@ -889,9 +933,109 @@
         }
 
         function onToggle2fa(el) {
-            // Tidak ada gerbang PIN di klien: semua akun dibuat dengan PIN saat daftar.
-            // Kalau server ternyata menolak (akun lawas tanpa PIN), user diarahkan ke form PIN.
-            fa2Set(el.checked);
+            if (el.checked) {
+                start2faSetup();
+            } else if (_fa2Totp) {
+                open2faDisable();
+            } else if (_fa2) {
+                fa2Set(false); // mode kunci PIN lama (akun yang aktif sebelum era Authenticator)
+            } else {
+                el.checked = false;
+            }
+        }
+
+        // ===== 2FA Google Authenticator: setup =====
+        function start2faSetup() {
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (!addr || !sec) return;
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'totp_setup', address: addr })
+            }).then(r => r.json()).then(d => {
+                if (d && d.success) {
+                    document.getElementById('fa2-setup-section').style.display = '';
+                    document.getElementById('fa2-disable-section').style.display = 'none';
+                    document.getElementById('fa2-secret-text').textContent = d.secret;
+                    document.getElementById('fa2-code-input').value = '';
+                    document.getElementById('fa2-form-error').textContent = '';
+                    try {
+                        const qr = qrcode(0, 'M');
+                        qr.addData(d.otpauth);
+                        qr.make();
+                        document.getElementById('fa2-qr').innerHTML = qr.createImgTag(180, 8);
+                    } catch (e) {
+                        document.getElementById('fa2-qr').innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 20px;">QR gagal dimuat — pakai kode manual di bawah</div>';
+                    }
+                    switchView('view-2fa');
+                } else {
+                    const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
+                    const note = document.getElementById('fa2-note');
+                    if (note) { note.textContent = (d && d.error) || 'Gagal memulai pengaturan'; note.style.color = '#ef4444'; }
+                }
+            }).catch(() => {
+                const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
+                const note = document.getElementById('fa2-note');
+                if (note) { note.textContent = 'Gagal terhubung ke server'; note.style.color = '#ef4444'; }
+            });
+        }
+
+        function confirm2faSetup() {
+            const errEl = document.getElementById('fa2-form-error');
+            const code = document.getElementById('fa2-code-input').value.trim();
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
+            if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Masukkan kode 6 digit dari Authenticator'; return; }
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'totp_verify', address: addr, code: code })
+            }).then(r => r.json()).then(d => {
+                if (d && d.success) {
+                    _fa2 = true; _fa2Totp = true;
+                    try { localStorage.setItem('wallet_fa2', 'totp'); } catch (e) {}
+                    refreshSecurityUi();
+                    loadActivity();
+                    switchView('view-security');
+                } else {
+                    errEl.textContent = (d && d.error) || 'Kode salah — coba lagi';
+                }
+            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+        }
+
+        // ===== 2FA Google Authenticator: matikan =====
+        function open2faDisable() {
+            document.getElementById('fa2-setup-section').style.display = 'none';
+            document.getElementById('fa2-disable-section').style.display = '';
+            document.getElementById('fa2-disable-input').value = '';
+            document.getElementById('fa2-disable-error').textContent = '';
+            switchView('view-2fa');
+        }
+
+        function confirm2faDisable() {
+            const errEl = document.getElementById('fa2-disable-error');
+            const code = document.getElementById('fa2-disable-input').value.trim();
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
+            if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Masukkan kode 6 digit'; return; }
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'totp_disable', address: addr, code: code })
+            }).then(r => r.json()).then(d => {
+                if (d && d.success) {
+                    _fa2 = false; _fa2Totp = false;
+                    try { localStorage.setItem('wallet_fa2', '0'); } catch (e) {}
+                    refreshSecurityUi();
+                    loadActivity();
+                    switchView('view-security');
+                } else {
+                    errEl.textContent = (d && d.error) || 'Kode salah — coba lagi';
+                }
+            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+        }
+
+        function cancel2fa() {
+            // kembali tanpa menyelesaikan → posisi toggle dikembalikan
+            const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
+            switchView('view-security');
         }
 
         function fa2Set(enabled) {
@@ -904,7 +1048,7 @@
                 const t = document.getElementById('fa2-toggle');
                 if (d && d.success) {
                     _fa2 = enabled;
-                    try { localStorage.setItem('wallet_fa2', enabled ? '1' : '0'); } catch (e) {}
+                    try { localStorage.setItem('wallet_fa2', enabled ? 'pin' : '0'); } catch (e) {}
                     refreshSecurityUi();
                     loadActivity();
                 } else {
@@ -998,7 +1142,8 @@
                         // state keamanan: PIN & 2FA
                         _hasPin = !!d.has_pin;
                         _fa2 = !!d.fa2;
-                        try { localStorage.setItem('wallet_fa2', _fa2 ? '1' : '0'); } catch (e) {}
+                        _fa2Totp = !!d.fa2_totp;
+                        try { localStorage.setItem('wallet_fa2', _fa2 ? (_fa2Totp ? 'totp' : 'pin') : '0'); } catch (e) {}
                         refreshSecurityUi();
                         // SERVER sumber kebenaran ID tampilan — ID lama di localStorage diganti otomatis
                         if (d.display_id && /^[A-Za-z0-9]{10}$/.test(d.display_id)) {
