@@ -1,12 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mengalihkan...</title>
-    <meta http-equiv="refresh" content="0; url=/Wallet/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClincooPay — Halaman tidak ditemukan</title>
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'">
 </head>
-<body>
+<body style="font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;color:#0f172a;">
+<div style="padding:24px;">
+    <div style="font-size:44px;margin-bottom:10px;">🔍</div>
+    <h1 style="font-size:20px;margin:0 0 8px;font-weight:700;">Halaman tidak ditemukan</h1>
+    <p style="color:#64748b;font-size:14px;margin:0 0 20px;">Alamat yang kamu buka tidak tersedia. Mengalihkan ke halaman utama…</p>
+    <a id="home" href="/">Kembali ke Beranda</a>
+</div>
+<script>
+// GitHub Pages tidak mendukung rewrite server. Halaman ini memulihkan URL lama/virtual
+// yang dikenal, dan selain itu OTOMATIS mengalihkan ke halaman utama (ala repo Clincoo).
+(function () {
+    var base = location.hostname.indexOf('github.io') !== -1 ? '/Wallet/' : '/';
+    document.getElementById('home').href = base;
+    var p = decodeURIComponent(location.pathname).replace(/^\/Wallet(?=\/|$)/, '');
+    var q = location.search, h = location.hash, m;
+    // pola lama: /<seg>.html -> /<seg>/
+    m = p.match(/^\/?([A-Za-z0-9_-]+)\.html$/);
+    if (m) { location.replace(base + m[1] + '/' + q + h); return; }
+    // sub-halaman profil virtual: /profile/<view> -> /profile/?view=<view>
+    var views = ['security','help','pin','pin-new','pin-confirm','2fa','2fa-verify'];
+    m = p.match(/^\/profile\/([a-z0-9-]+)\/?$/);
+    if (m && views.indexOf(m[1]) !== -1) { location.replace(base + 'profile/?view=' + m[1] + q + h); return; }
+    // alias path pendek
+    var aliases = { '/keamanan':'profile/?view=security', '/ubah-pin':'profile/?view=pin', '/profil':'profile/', '/pusat-bantuan':'bantuan/', '/bantuan':'bantuan/', '/notifikasi':'notifications/', '/masuk':'auth/', '/dompet':'', '/scan':'', '/riwayat':'' };
+    if (Object.prototype.hasOwnProperty.call(aliases, p)) { location.replace(base + aliases[p] + q + h); return; }
+    // selain pola yang dikenal -> halaman utama
+    setTimeout(function () { location.replace(base); }, 800);
+})();
+</script>
 </body>
 </html>

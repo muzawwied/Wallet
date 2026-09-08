@@ -18,3 +18,33 @@
 /profile/pin-new/ /profile/ 200
 /profile/pin-confirm /profile/ 200
 /profile/pin-confirm/ /profile/ 200
+
+# ===== Sistem path ala Clincoo: clean URL & alias lama =====
+/profil /profile/ 301
+/profil/ /profile/ 301
+/masuk /auth/ 301
+/masuk/ /auth/ 301
+/notifikasi /notifications/ 301
+/notifikasi/ /notifications/ 301
+/bantuan /bantuan/ 301
+/bantuan/ /bantuan/ 301
+/pusat-bantuan /bantuan/ 301
+/pusat-bantuan/ /bantuan/ 301
+/keamanan /profile/?view=security 301
+/keamanan/ /profile/?view=security 301
+/ubah-pin /profile/?view=pin 301
+/ubah-pin/ /profile/?view=pin 301
+/profile.html /profile/ 301
+/auth.html /auth/ 301
+/notifications.html /notifications/ 301
+/bantuan.html /bantuan/ 301
+/Profile /profile/ 301
+/Profile/ /profile/ 301
+/Profile.html /profile/ 301
+/Auth /auth/ 301
+/Auth/ /auth/ 301
+/Auth.html /auth/ 301
+/Bantuan /bantuan/ 301
+/Bantuan/ /bantuan/ 301
+/Notifications /notifications/ 301
+/Notifications/ /notifications/ 301
