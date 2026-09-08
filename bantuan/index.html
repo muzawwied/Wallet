@@ -244,7 +244,7 @@
                 <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
             <div class="faq-answer"><div class="faq-answer-inner">
-                Bisa. Masuk lewat akun Google dengan email yang sama seperti pendaftaran. Namun kirim saldo dan ubah PIN tetap membutuhkan PIN — jika benar-benar lupa, hubungi tim dukungan ClincooPay melalui email untuk reset PIN.
+                Bisa. Masuk lewat akun Google dengan email yang sama seperti pendaftaran. Namun kirim saldo dan ubah PIN tetap membutuhkan PIN — jika benar-benar lupa, hubungi tim dukungan ClincooPay melalui WhatsApp untuk reset PIN.
             </div></div>
         </div>
 
@@ -324,7 +324,7 @@
 
         <div class="support-card" onclick="contactSupport()">
             <div class="s-title">Masih butuh bantuan?</div>
-            <div class="s-sub">Hubungi tim dukungan ClincooPay melalui email. Sertakan alamat dompet kamu (dimulai dengan 0x…) agar bantuan lebih cepat.</div>
+            <div class="s-sub">Hubungi tim dukungan ClincooPay lewat WhatsApp. Sertakan alamat dompet kamu (dimulai dengan 0x…) agar bantuan lebih cepat.</div>
         </div>
 
         <div class="version-foot">
@@ -334,17 +334,17 @@
     </div>
 
     <script>
-        // ===== ALAMAT EMAIL DUKUNGAN =====
-        // Isi di sini nanti setelah domain aktif, contoh: 'dukungan@clincoopay.id'
-        // Begitu diisi, icon headset & card dukungan otomatis jadi tombol kirim email.
-        const SUPPORT_EMAIL = '';
+        // ===== KONTAK DUKUNGAN (WhatsApp) =====
+        // Nomor format internasional tanpa '+' dan spasi.
+        const SUPPORT_WHATSAPP = '628384927259';
 
         function contactSupport() {
-            if (SUPPORT_EMAIL) {
-                location.href = 'mailto:' + SUPPORT_EMAIL;
+            if (SUPPORT_WHATSAPP) {
+                const msg = 'Halo tim dukungan ClincooPay, saya butuh bantuan terkait:';
+                location.href = 'https://wa.me/' + SUPPORT_WHATSAPP + '?text=' + encodeURIComponent(msg);
                 return;
             }
-            showToast('Email dukungan segera tersedia — sedang menyiapkan domain.');
+            showToast('Kontak dukungan belum tersedia.');
         }
 
         function showToast(msg) {
