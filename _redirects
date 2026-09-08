@@ -8,3 +8,7 @@
 /profile/security/ /profile/ 200
 /profile/help /profile/ 200
 /profile/help/ /profile/ 200
+/profile/pin /profile/ 200
+/profile/pin/ /profile/ 200
+/profile/2fa /profile/ 200
+/profile/2fa/ /profile/ 200
