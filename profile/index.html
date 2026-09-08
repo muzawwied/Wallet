@@ -434,6 +434,7 @@
         }
         .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: fa2spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
         @keyframes fa2spin { to { transform: rotate(360deg); } }
+        .fa2v-ring { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: fa2spin .8s linear infinite; }
     </style>
 </head>
 <body>
@@ -668,12 +669,11 @@
                 </button>
                 <span class="scanner-title" id="fa2v-title">Masukkan Kode</span>
             </div>
-            <div class="settings-content" style="display: flex; flex-direction: column; align-items: center;">
-                <div id="fa2v-sub" style="font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 20px;"></div>
+            <div class="settings-content" style="display: flex; flex-direction: column; align-items: center; padding: 16px 0 32px 0;">
+                <div id="fa2v-sub" style="font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 20px; padding: 0 16px;"></div>
                 <div id="fa2v-dots" style="display: flex; gap: 12px; margin-bottom: 14px;"></div>
                 <div id="fa2v-error" style="font-size: 0.8rem; color: #ef4444; min-height: 1.2em; margin-bottom: 6px; text-align: center;"></div>
-                <div id="fa2v-busy" style="font-size: 0.8rem; color: var(--text-muted); min-height: 1.2em; margin-bottom: 6px; text-align: center;"></div>
-                <div id="fa2v-pad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;"></div>
+                <div id="fa2v-pad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%;"></div>
             </div>
         </div>
 
@@ -1038,13 +1038,13 @@
                 const b = document.createElement('button');
                 b.type = 'button';
                 if (k === '') {
-                    b.style.cssText = 'width:64px;height:64px;border:none;background:transparent;cursor:default;';
+                    b.style.cssText = 'width:100%;height:64px;border:none;background:transparent;cursor:default;';
                 } else {
                     b.setAttribute('onclick', "fa2vKey('" + k + "')");
                     b.textContent = k === 'del' ? '⌫' : k;
                     b.style.cssText = k === 'del'
-                        ? 'width:64px;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;'
-                        : 'width:64px;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;';
+                        ? 'width:100%;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;'
+                        : 'width:100%;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;';
                 }
                 pad.appendChild(b);
             });
@@ -1054,7 +1054,6 @@
             const t = document.getElementById('fa2v-title'); if (t) t.textContent = title;
             const s = document.getElementById('fa2v-sub'); if (s) s.textContent = sub;
             const err = document.getElementById('fa2v-error'); if (err) err.textContent = '';
-            const busy = document.getElementById('fa2v-busy'); if (busy) busy.textContent = '';
             buildFa2vPad();
             fa2vRenderDots();
             switchView('view-2fa-verify');
@@ -1075,14 +1074,24 @@
             fa2vRenderDots();
             if (_totpCode.length === 6) setTimeout(fa2vSubmit, 150);
         }
+        // layar diredupin + icon loading muter (tanpa teks log)
+        function fa2vShowBusy(on) {
+            let ov = document.getElementById('fa2v-ov');
+            if (on && !ov) {
+                ov = document.createElement('div');
+                ov.id = 'fa2v-ov';
+                ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9998;display:flex;align-items:center;justify-content:center;';
+                ov.innerHTML = '<div class="fa2v-ring"></div>';
+                document.body.appendChild(ov);
+            } else if (!on && ov) { ov.remove(); }
+        }
         function fa2vSubmit() {
             const err = document.getElementById('fa2v-error');
-            const busy = document.getElementById('fa2v-busy');
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
             if (!addr || !sec) { err.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
             _totpBusy = true;
-            busy.innerHTML = '<span class="spin" style="border-color:rgba(15,23,42,.15);border-top-color:#0f172a;"></span>Memeriksa kode...';
+            fa2vShowBusy(true);
             const action = _totpFlow === 'setup' ? 'totp_verify' : 'totp_disable';
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
                 body: JSON.stringify({ action: action, address: addr, code: _totpCode })
@@ -1095,19 +1104,20 @@
                         _fa2 = false; _fa2Totp = false;
                         try { localStorage.setItem('wallet_fa2', '0'); } catch (e) {}
                     }
+                    fa2vShowBusy(false);
                     refreshSecurityUi();
                     loadActivity();
                     switchView('view-security');
                 } else {
                     _totpCode = ''; _totpBusy = false;
+                    fa2vShowBusy(false);
                     fa2vRenderDots();
-                    busy.textContent = '';
                     err.textContent = (d && d.error) || 'Kode salah — coba lagi';
                 }
             }).catch(() => {
                 _totpCode = ''; _totpBusy = false;
+                fa2vShowBusy(false);
                 fa2vRenderDots();
-                busy.textContent = '';
                 err.textContent = 'Gagal terhubung ke server — coba lagi';
             });
         }

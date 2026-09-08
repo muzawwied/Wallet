@@ -858,6 +858,7 @@
             font-weight: 600;
             letter-spacing: 0.3px;
         }
+            @keyframes fa2spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -1612,9 +1613,9 @@
             const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
             let pad = '';
             keys.forEach(function (k) {
-                if (k === '') { pad += '<button type="button" style="width:64px;height:64px;border:none;background:transparent;cursor:default;"></button>'; }
-                else if (k === 'del') { pad += '<button type="button" onclick="fa2Key(\'del\')" style="width:64px;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;">⌫</button>'; }
-                else { pad += '<button type="button" onclick="fa2Key(\'' + k + '\')" style="width:64px;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;">' + k + '</button>'; }
+                if (k === '') { pad += '<button type="button" style="width:100%;height:64px;border:none;background:transparent;cursor:default;"></button>'; }
+                else if (k === 'del') { pad += '<button type="button" onclick="fa2Key(\'del\')" style="width:100%;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;">⌫</button>'; }
+                else { pad += '<button type="button" onclick="fa2Key(\'' + k + '\')" style="width:100%;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;">' + k + '</button>'; }
             });
             const isTotp = _fa2Mode === 'totp';
             ov.innerHTML =
@@ -1629,7 +1630,7 @@
                     '<span style="width:12px;height:12px;border-radius:50%;background:#e2e8f0;"></span>'.repeat(6) +
                 '</div>' +
                 '<div id="fa2-error" style="font-size:0.8rem;color:#ef4444;min-height:1.2em;margin-bottom:10px;text-align:center;"></div>' +
-                '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">' + pad + '</div>';
+                '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;padding:0 8px;box-sizing:border-box;">' + pad + '</div>';
             document.body.appendChild(ov);
             _fa2Pin = '';
         }
@@ -1646,14 +1647,24 @@
             fa2RenderDots();
             if (_fa2Pin.length === 6) setTimeout(fa2Verify, 150);
         }
+        // layar kunci: diredupin + icon loading muter saat memeriksa (tanpa teks log)
+        function fa2LockBusy(on) {
+            let ov = document.getElementById('fa2-lock-busy');
+            if (on && !ov) {
+                ov = document.createElement('div');
+                ov.id = 'fa2-lock-busy';
+                ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+                ov.innerHTML = '<div style="width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:fa2spin .8s linear infinite;"></div>';
+                document.body.appendChild(ov);
+            } else if (!on && ov) { ov.remove(); }
+        }
         function fa2Verify() {
             if (_fa2Busy) return;
             const addr = localStorage.getItem('user_wallet_address') || '';
             const sec = localStorage.getItem('user_wallet_secret') || '';
             if (!addr || !sec) { window.location.replace(SITE_BASE + 'auth/'); return; }
             _fa2Busy = true;
-            const busyEl = document.getElementById('fa2-error');
-            if (busyEl) { busyEl.style.color = '#64748b'; busyEl.textContent = 'Memeriksa kode...'; }
+            fa2LockBusy(true);
             const payload = _fa2Mode === 'totp'
                 ? { action: 'totp_verify', address: addr, code: _fa2Pin }
                 : { action: 'pin_verify', address: addr, pin: _fa2Pin };
@@ -1661,6 +1672,7 @@
                 body: JSON.stringify(payload)
             }).then(r => r.json()).then(d => {
                 _fa2Busy = false;
+                fa2LockBusy(false);
                 if (d && d.success) {
                     try { sessionStorage.setItem('wallet_fa2_unlocked', '1'); } catch (e) {}
                     const ov = document.getElementById('fa2-lock'); if (ov) ov.remove();
@@ -1672,6 +1684,7 @@
                 }
             }).catch(() => {
                 _fa2Busy = false;
+                fa2LockBusy(false);
                 const err = document.getElementById('fa2-error');
                 if (err) { err.style.color = '#ef4444'; err.textContent = 'Gagal terhubung — coba lagi'; }
                 _fa2Pin = ''; fa2RenderDots();
