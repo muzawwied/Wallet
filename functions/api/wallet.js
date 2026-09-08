@@ -262,6 +262,12 @@ export async function onRequestPost({ request, env }) {
 
       if (sender.balance < amount) return j({ error: 'Saldo tidak cukup. Saldo Anda ' + sender.balance + '.' }, 402);
 
+      // Transaksi wajib PIN — diverifikasi di server (semua akun punya PIN dari pendaftaran)
+      if (!sender.pin_hash || !sender.pin_salt) return j({ error: 'Akun belum punya PIN — atur PIN dulu di Profil → Keamanan.' }, 400);
+      const txPin = String(body.pin || '');
+      if (!txPin) return j({ error: 'PIN dibutuhkan untuk transaksi' }, 401);
+      if ((await hashPin(txPin, sender.pin_salt)) !== sender.pin_hash) return j({ error: 'PIN salah' }, 403);
+
       const txid = 'TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
         .bind(txid, from, to, amount, note).run();

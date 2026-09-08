@@ -859,6 +859,13 @@
             letter-spacing: 0.3px;
         }
             @keyframes fa2spin { to { transform: rotate(360deg); } }
+            .pin-dots { display: flex; gap: 16px; justify-content: center; margin: 24px 0 16px; }
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; background-color: #e2e8f0; transition: all 0.2s ease; }
+        .pin-dot.filled { background-color: var(--accent-blue); transform: scale(1.1); }
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 24px; padding: 0 32px; margin-top: 24px; width: 100%; box-sizing: border-box; }
+        .pin-key { width: 70px; height: 70px; border-radius: 50%; border: none; background-color: #f8fafc; color: var(--text-main); font-size: 1.5rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
+        .pin-key:active { background-color: #e2e8f0; transform: scale(0.92); }
+        .pin-key.ghost { background-color: transparent; cursor: default; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -1333,31 +1340,33 @@
                 return;
             }
 
-            const btn = document.querySelector('#page-kirim .btn-submit, .btn-submit');
-            if (btn) { btn.disabled = true; }
+            askTxPin(async function (pin) {
+                const btn = document.querySelector('#page-kirim .btn-submit, .btn-submit');
+                if (btn) { btn.disabled = true; }
 
-            try {
-                const res = await fetch(API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
-                    body: JSON.stringify({ action: 'send', from: walletAddress, to: targetVal, amount: amountVal, note: (noteEl ? noteEl.value.trim() : '') })
-                }).then(r => r.json());
+                try {
+                    const res = await fetch(API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                        body: JSON.stringify({ action: 'send', from: walletAddress, to: targetVal, amount: amountVal, note: (noteEl ? noteEl.value.trim() : ''), pin: pin })
+                    }).then(r => r.json());
 
-                if (res.success) {
-                    currentBalance = res.balance;
-                    targetEl.value = '';
-                    amountEl.value = '';
-                    if (noteEl) noteEl.value = '';
-                    await loadWalletState();
-                    switchPage('dompet');
-                } else {
-                    if (errEl) errEl.textContent = res.error || 'Transaksi gagal.';
+                    if (res.success) {
+                        currentBalance = res.balance;
+                        targetEl.value = '';
+                        amountEl.value = '';
+                        if (noteEl) noteEl.value = '';
+                        await loadWalletState();
+                        switchPage('dompet');
+                    } else {
+                        if (errEl) errEl.textContent = res.error || 'Transaksi gagal.';
+                    }
+                } catch (e) {
+                    if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
+                } finally {
+                    if (btn) { btn.disabled = false; }
                 }
-            } catch (e) {
-                if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
-            } finally {
-                if (btn) { btn.disabled = false; }
-            }
+            });
         }
 
         let scanActive = false;
@@ -1601,6 +1610,7 @@
         });
 
         // ===== 2FA: layar kunci PIN — diminta sekali per sesi tab (sessionStorage) =====
+        const DEL_KEY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>';
         let _fa2Pin = '';
         let _fa2Mode = 'pin';
         function _fa2Unlocked() { try { return sessionStorage.getItem('wallet_fa2_unlocked') === '1'; } catch (e) { return false; } }
@@ -1613,9 +1623,9 @@
             const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
             let pad = '';
             keys.forEach(function (k) {
-                if (k === '') { pad += '<button type="button" style="width:100%;height:64px;border:none;background:transparent;cursor:default;"></button>'; }
-                else if (k === 'del') { pad += '<button type="button" onclick="fa2Key(\'del\')" style="width:100%;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;">⌫</button>'; }
-                else { pad += '<button type="button" onclick="fa2Key(\'' + k + '\')" style="width:100%;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;">' + k + '</button>'; }
+                if (k === '') { pad += '<button type="button" class="pin-key ghost"></button>'; }
+                else if (k === 'del') { pad += '<button type="button" class="pin-key" onclick="fa2Key(\'del\')">' + DEL_KEY_SVG + '</button>'; }
+                else { pad += '<button type="button" class="pin-key" onclick="fa2Key(\'' + k + '\')">' + k + '</button>'; }
             });
             const isTotp = _fa2Mode === 'totp';
             ov.innerHTML =
@@ -1626,17 +1636,17 @@
                 '</svg>' +
                 '<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">' + (isTotp ? 'Masukkan Kode Autentikator' : 'Masukkan PIN') + '</div>' +
                 '<div style="font-size:0.82rem;color:#64748b;margin-top:4px;margin-bottom:20px;">' + (isTotp ? 'Kode 6 digit dari Google Authenticator' : 'PIN dibutuhkan untuk membuka Wallet') + '</div>' +
-                '<div id="fa2-dots" style="display:flex;gap:12px;margin-bottom:18px;">' +
-                    '<span style="width:12px;height:12px;border-radius:50%;background:#e2e8f0;"></span>'.repeat(6) +
+                '<div id="fa2-dots" class="pin-dots">' +
+                    '<span class="pin-dot"></span>'.repeat(6) +
                 '</div>' +
                 '<div id="fa2-error" style="font-size:0.8rem;color:#ef4444;min-height:1.2em;margin-bottom:10px;text-align:center;"></div>' +
-                '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;padding:0 8px;box-sizing:border-box;">' + pad + '</div>';
+                '<div class="pin-pad">' + pad + '</div>';
             document.body.appendChild(ov);
             _fa2Pin = '';
         }
         function fa2RenderDots() {
             const dots = document.querySelectorAll('#fa2-dots span');
-            dots.forEach(function (d, idx) { d.style.background = idx < _fa2Pin.length ? '#0f172a' : '#e2e8f0'; });
+            dots.forEach(function (d, idx) { d.className = 'pin-dot' + (idx < _fa2Pin.length ? ' filled' : ''); });
         }
         let _fa2Busy = false;
         function fa2Key(k) {
@@ -1689,6 +1699,77 @@
                 if (err) { err.style.color = '#ef4444'; err.textContent = 'Gagal terhubung — coba lagi'; }
                 _fa2Pin = ''; fa2RenderDots();
             });
+        }
+
+        // ===== PIN untuk transaksi: diminta sebelum kirim saldo (keyboard gaya login) =====
+        let _txPin = '', _txPinCb = null, _txPinBusy = false;
+        function askTxPin(cb) {
+            const oldOv = document.getElementById('tx-pin-lock'); if (oldOv) oldOv.remove();
+            _txPin = ''; _txPinCb = cb; _txPinBusy = false;
+            const ov = document.createElement('div');
+            ov.id = 'tx-pin-lock';
+            ov.style.cssText = 'position:fixed; inset:0; z-index:9998; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px;';
+            const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
+            let pad = '';
+            keys.forEach(function (k) {
+                if (k === '') { pad += '<button type="button" class="pin-key ghost"></button>'; }
+                else if (k === 'del') { pad += '<button type="button" class="pin-key" onclick="txPinKey(\'del\')">' + DEL_KEY_SVG + '</button>'; }
+                else { pad += '<button type="button" class="pin-key" onclick="txPinKey(\'' + k + '\')">' + k + '</button>'; }
+            });
+            ov.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                '<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">Masukkan PIN</div>' +
+                '<div style="font-size:0.82rem;color:#64748b;margin-top:4px;margin-bottom:6px;">PIN dibutuhkan untuk transaksi</div>' +
+                '<div id="tx-pin-dots" class="pin-dots">' + '<span class="pin-dot"></span>'.repeat(6) + '</div>' +
+                '<div id="tx-pin-error" style="font-size:0.8rem;color:#ef4444;min-height:1.2em;margin-bottom:6px;text-align:center;"></div>' +
+                '<div class="pin-pad">' + pad + '</div>' +
+                '<button type="button" style="background:none;border:none;color:#64748b;font-size:0.85rem;cursor:pointer;margin-top:16px;" onclick="cancelTxPin()">Batal</button>';
+            document.body.appendChild(ov);
+        }
+        function txPinRenderDots() {
+            const dots = document.querySelectorAll('#tx-pin-dots span');
+            dots.forEach(function (d, idx) { d.className = 'pin-dot' + (idx < _txPin.length ? ' filled' : ''); });
+        }
+        function txPinKey(k) {
+            if (_txPinBusy) return;
+            const err = document.getElementById('tx-pin-error'); if (err) err.textContent = '';
+            if (k === 'del') { _txPin = _txPin.slice(0, -1); }
+            else if (_txPin.length < 6) { _txPin += k; }
+            txPinRenderDots();
+            if (_txPin.length === 6) setTimeout(txPinVerify, 200);
+        }
+        function txPinVerify() {
+            const addr = localStorage.getItem('user_wallet_address') || '';
+            const sec = localStorage.getItem('user_wallet_secret') || '';
+            if (!addr || !sec) { cancelTxPin(); window.location.replace(SITE_BASE + 'auth/'); return; }
+            _txPinBusy = true;
+            fa2LockBusy(true);
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'pin_verify', address: addr, pin: _txPin })
+            }).then(r => r.json()).then(d => {
+                fa2LockBusy(false);
+                _txPinBusy = false;
+                if (d && d.success) {
+                    const cb = _txPinCb; const pin = _txPin;
+                    cancelTxPin();
+                    if (cb) cb(pin);
+                } else {
+                    _txPin = ''; txPinRenderDots();
+                    const err = document.getElementById('tx-pin-error');
+                    if (err) err.textContent = (d && d.error) || 'PIN salah — coba lagi';
+                }
+            }).catch(() => {
+                fa2LockBusy(false);
+                _txPinBusy = false;
+                _txPin = ''; txPinRenderDots();
+                const err = document.getElementById('tx-pin-error');
+                if (err) err.textContent = 'Gagal terhubung — coba lagi';
+            });
+        }
+        function cancelTxPin() {
+            _txPinCb = null; _txPin = '';
+            const ov = document.getElementById('tx-pin-lock');
+            if (ov) ov.remove();
         }
 
         // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru

@@ -435,6 +435,14 @@
         .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: fa2spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
         @keyframes fa2spin { to { transform: rotate(360deg); } }
         .fa2v-ring { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: fa2spin .8s linear infinite; }
+        /* Keypad PIN — sama persis dengan halaman login */
+        .pin-dots { display: flex; gap: 16px; justify-content: center; margin: 24px 0 16px; }
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; background-color: #e2e8f0; transition: all 0.2s ease; }
+        .pin-dot.filled { background-color: var(--accent-blue); transform: scale(1.1); }
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 24px; padding: 0 32px; margin-top: 24px; width: 100%; box-sizing: border-box; }
+        .pin-key { width: 70px; height: 70px; border-radius: 50%; border: none; background-color: #f8fafc; color: var(--text-main); font-size: 1.5rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
+        .pin-key:active { background-color: #e2e8f0; transform: scale(0.92); }
+        .pin-key.ghost { background-color: transparent; cursor: default; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -614,21 +622,50 @@
                 </button>
                 <span class="scanner-title">Ubah PIN</span>
             </div>
-            <div class="settings-content">
-                <div id="pin-old-group" class="form-group">
-                    <label class="form-label">PIN Lama</label>
-                    <input id="pin-old-input" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN lama" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
-                </div>
-                <div class="form-group" style="margin-top: 14px;">
-                    <label class="form-label">PIN Baru</label>
-                    <input id="pin-new-input" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit angka" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
-                </div>
-                <div class="form-group" style="margin-top: 14px;">
-                    <label class="form-label">Ulangi PIN Baru</label>
-                    <input id="pin-confirm-input" type="password" inputmode="numeric" maxlength="6" placeholder="Ulangi PIN baru" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
-                </div>
-                <div id="pin-form-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
-                <button type="button" id="pin-save-btn" onclick="savePin()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Simpan PIN</button>
+            <div class="settings-content" style="align-items: center;">
+                <div style="font-weight: 600; font-size: 1rem; text-align: center;">Masukkan PIN Lama</div>
+                <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">PIN yang kamu pakai saat ini</div>
+                <div id="pind-old" class="pin-dots"></div>
+                <span id="pinchg-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
+                <div id="pad-old" class="pin-pad" style="margin-top: 8px;"></div>
+            </div>
+        </div>
+
+        <div id="view-pin-new" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="pinChgBack('old')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Ubah PIN</span>
+            </div>
+            <div class="settings-content" style="align-items: center;">
+                <div style="font-weight: 600; font-size: 1rem; text-align: center;">Buat PIN Baru</div>
+                <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">6 digit angka — jangan yang mudah ditebak</div>
+                <div id="pind-new" class="pin-dots"></div>
+                <span id="pinchg-error-new" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
+                <div id="pad-new" class="pin-pad" style="margin-top: 8px;"></div>
+            </div>
+        </div>
+
+        <div id="view-pin-confirm" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="pinChgBack('new')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Ubah PIN</span>
+            </div>
+            <div class="settings-content" style="align-items: center;">
+                <div style="font-weight: 600; font-size: 1rem; text-align: center;">Ulangi PIN Baru</div>
+                <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">Ketik ulang PIN baru yang sama</div>
+                <div id="pind-cf" class="pin-dots"></div>
+                <span id="pinchg-cf-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
+                <div id="pad-cf" class="pin-pad" style="margin-top: 8px;"></div>
             </div>
         </div>
 
@@ -671,9 +708,9 @@
             </div>
             <div class="settings-content" style="display: flex; flex-direction: column; align-items: center; padding: 16px 0 32px 0;">
                 <div id="fa2v-sub" style="font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 20px; padding: 0 16px;"></div>
-                <div id="fa2v-dots" style="display: flex; gap: 12px; margin-bottom: 14px;"></div>
+                <div id="fa2v-dots" class="pin-dots"></div>
                 <div id="fa2v-error" style="font-size: 0.8rem; color: #ef4444; min-height: 1.2em; margin-bottom: 6px; text-align: center;"></div>
-                <div id="fa2v-pad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%;"></div>
+                <div id="fa2v-pad" class="pin-pad" style="margin-top: 8px;"></div>
             </div>
         </div>
 
@@ -751,6 +788,7 @@
             if (targetView) {
                 targetView.classList.add('active');
                 if (viewId === 'view-security') { loadActivity(); }
+                if (viewId === 'view-pin' || viewId === 'view-pin-new' || viewId === 'view-pin-confirm') initPinChange();
                 if (!isHistory) {
                     const pathName = viewId === 'view-profile' ? _BASE + '/profile/' : _BASE + '/profile/' + viewId.replace('view-', '');
                     window.history.pushState({ view: viewId }, '', pathName);
@@ -906,54 +944,105 @@
             if (st) st.textContent = 'PIN terpasang';
             const pb = document.getElementById('pin-edit-btn');
             if (pb) pb.textContent = 'Ubah PIN';
-            const pg = document.getElementById('pin-old-group');
-            if (pg) pg.style.display = '';
         }
 
-        // animasi loading tombol: tombol berubah jadi spinner + teks, nonaktif selama proses
-        function btnLoading(btn, on, label) {
-            if (!btn) return;
-            if (on) {
-                btn.dataset.oldHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.style.opacity = '0.75';
-                btn.innerHTML = '<span class="spin"></span>' + (label || 'Memproses...');
-            } else {
-                btn.disabled = false;
-                btn.style.opacity = '';
-                btn.innerHTML = btn.dataset.oldHtml || btn.innerHTML;
+        // ===== Ubah PIN: 3 halaman terpisah (PIN lama → PIN baru → Ulangi), keyboard gaya login =====
+        const DEL_KEY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>';
+        function buildLoginPad(padId, keyFn) {
+            const pad = document.getElementById(padId); if (!pad) return;
+            const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
+            pad.innerHTML = '';
+            keys.forEach(function (k) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                if (k === '') { b.className = 'pin-key ghost'; }
+                else if (k === 'del') { b.className = 'pin-key'; b.innerHTML = DEL_KEY_SVG; b.onclick = function () { keyFn('del'); }; }
+                else { b.className = 'pin-key'; b.textContent = k; b.onclick = function () { keyFn(k); }; }
+                pad.appendChild(b);
+            });
+        }
+        function renderPinDots(dotsId, len) {
+            const box = document.getElementById(dotsId); if (!box) return;
+            box.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const s = document.createElement('span');
+                s.className = 'pin-dot' + (i < len ? ' filled' : '');
+                box.appendChild(s);
             }
         }
-
-        function savePin() {
-            const errEl = document.getElementById('pin-form-error');
-            const saveBtn = document.getElementById('pin-save-btn');
-            errEl.textContent = '';
-            const newPin = document.getElementById('pin-new-input').value.trim();
-            const confirmPin = document.getElementById('pin-confirm-input').value.trim();
-            const oldPin = document.getElementById('pin-old-input').value.trim();
+        let _pinchg = { old: '', nw: '', cf: '', busy: false };
+        function pinChgRender() {
+            renderPinDots('pind-old', _pinchg.old.length);
+            renderPinDots('pind-new', _pinchg.nw.length);
+            renderPinDots('pind-cf', _pinchg.cf.length);
+        }
+        function initPinChange() {
+            _pinchg = { old: '', nw: '', cf: '', busy: false };
+            ['pinchg-error','pinchg-error-new','pinchg-cf-error'].forEach(function (id) {
+                const e = document.getElementById(id); if (e) e.textContent = '';
+            });
+            buildLoginPad('pad-old', function (k) { pinChgKey('old', k); });
+            buildLoginPad('pad-new', function (k) { pinChgKey('new', k); });
+            buildLoginPad('pad-cf', function (k) { pinChgKey('cf', k); });
+            pinChgRender();
+        }
+        function pinChgKey(stage, k) {
+            if (_pinchg.busy) return;
+            const errId = stage === 'old' ? 'pinchg-error' : stage === 'new' ? 'pinchg-error-new' : 'pinchg-cf-error';
+            const err = document.getElementById(errId); if (err) err.textContent = '';
+            if (k === 'del') { _pinchg[stage] = _pinchg[stage].slice(0, -1); }
+            else if (_pinchg[stage].length < 6) { _pinchg[stage] += k; }
+            pinChgRender();
+            if (_pinchg[stage].length === 6) {
+                if (stage === 'old') setTimeout(function () { switchView('view-pin-new'); }, 200);
+                else if (stage === 'new') setTimeout(function () { switchView('view-pin-confirm'); }, 200);
+                else setTimeout(pinChgSubmit, 200);
+            }
+        }
+        function pinChgBack(target) {
+            if (target === 'old') { _pinchg.nw = ''; _pinchg.cf = ''; }
+            else if (target === 'new') { _pinchg.cf = ''; }
+            pinChgRender();
+            switchView(target === 'old' ? 'view-pin' : 'view-pin-new');
+        }
+        function pinChgSubmit() {
+            const err = document.getElementById('pinchg-cf-error');
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
-            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
-            if (!/^\d{6}$/.test(oldPin)) { errEl.textContent = 'Masukkan PIN lama (6 digit)'; return; }
-            if (!/^\d{6}$/.test(newPin)) { errEl.textContent = 'PIN baru harus 6 digit angka'; return; }
-            if (newPin !== confirmPin) { errEl.textContent = 'PIN baru tidak sama — ulangi lagi'; return; }
-            btnLoading(saveBtn, true, 'Menyimpan...');
+            if (!addr || !sec) { err.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
+            if (_pinchg.nw !== _pinchg.cf) { err.textContent = 'PIN baru tidak sama — ulangi'; _pinchg.cf = ''; pinChgRender(); return; }
+            if (_pinchg.nw === _pinchg.old) {
+                err.textContent = '';
+                _pinchg.nw = ''; _pinchg.cf = ''; pinChgRender();
+                const e2 = document.getElementById('pinchg-error-new');
+                if (e2) e2.textContent = 'PIN baru tidak boleh sama dengan PIN lama';
+                switchView('view-pin-new');
+                return;
+            }
+            _pinchg.busy = true;
+            fa2vShowBusy(true);
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
-                body: JSON.stringify({ action: 'pin_set', address: addr, pin: newPin, old_pin: oldPin })
+                body: JSON.stringify({ action: 'pin_set', address: addr, pin: _pinchg.nw, old_pin: _pinchg.old })
             }).then(r => r.json()).then(d => {
-                btnLoading(saveBtn, false);
+                fa2vShowBusy(false);
+                _pinchg.busy = false;
                 if (d && d.success) {
-                    _hasPin = true;
+                    _pinchg = { old: '', nw: '', cf: '', busy: false };
                     refreshSecurityUi();
-                    document.getElementById('pin-old-input').value = '';
-                    document.getElementById('pin-new-input').value = '';
-                    document.getElementById('pin-confirm-input').value = '';
+                    loadActivity();
                     switchView('view-security');
                 } else {
-                    errEl.textContent = (d && d.error) || 'Gagal menyimpan PIN';
+                    _pinchg = { old: '', nw: '', cf: '', busy: false };
+                    pinChgRender();
+                    switchView('view-pin');
+                    const e1 = document.getElementById('pinchg-error');
+                    if (e1) e1.textContent = (d && d.error) || 'PIN lama salah';
                 }
-            }).catch(() => { btnLoading(saveBtn, false); errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+            }).catch(() => {
+                fa2vShowBusy(false);
+                _pinchg.busy = false;
+                err.textContent = 'Gagal terhubung ke server — coba lagi';
+            });
         }
 
         function onToggle2fa(el) {
@@ -1021,34 +1110,8 @@
 
         // ===== 2FA: halaman verifikasi dengan keyboard custom (gaya input PIN) =====
         let _totpCode = '', _totpFlow = 'setup', _totpBusy = false;
-        function fa2vRenderDots() {
-            const box = document.getElementById('fa2v-dots');
-            box.innerHTML = '';
-            for (let i = 0; i < 6; i++) {
-                const s = document.createElement('span');
-                s.style.cssText = 'width:12px;height:12px;border-radius:50%;background:' + (i < _totpCode.length ? '#0f172a' : '#e2e8f0');
-                box.appendChild(s);
-            }
-        }
-        function buildFa2vPad() {
-            const pad = document.getElementById('fa2v-pad'); if (!pad) return;
-            const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
-            pad.innerHTML = '';
-            keys.forEach(function (k) {
-                const b = document.createElement('button');
-                b.type = 'button';
-                if (k === '') {
-                    b.style.cssText = 'width:100%;height:64px;border:none;background:transparent;cursor:default;';
-                } else {
-                    b.setAttribute('onclick', "fa2vKey('" + k + "')");
-                    b.textContent = k === 'del' ? '⌫' : k;
-                    b.style.cssText = k === 'del'
-                        ? 'width:100%;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;'
-                        : 'width:100%;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;';
-                }
-                pad.appendChild(b);
-            });
-        }
+        function fa2vRenderDots() { renderPinDots('fa2v-dots', _totpCode.length); }
+        function buildFa2vPad() { buildLoginPad('fa2v-pad', fa2vKey); }
         function open2faPad(title, sub) {
             _totpCode = ''; _totpBusy = false;
             const t = document.getElementById('fa2v-title'); if (t) t.textContent = title;
@@ -1153,12 +1216,6 @@
                     if (t) t.checked = _fa2; // gagal → kembalikan posisi
                     const note = document.getElementById('fa2-note');
                     if (note) { note.textContent = (d && d.error) || 'Gagal mengubah pengaturan'; note.style.color = '#ef4444'; }
-                    // akun lawas tanpa PIN (dibuat sebelum era PIN) → arahkan ke form PIN
-                    if (d && d.error && d.error.indexOf('PIN') !== -1) {
-                        const fe = document.getElementById('pin-form-error');
-                        if (fe) fe.textContent = d.error;
-                        switchView('view-pin');
-                    }
                 }
             }).catch(() => { const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2; });
         }
@@ -1358,7 +1415,7 @@
         // Pulihkan sub-halaman (Keamanan/Pusat Bantuan) saat refresh/dibuka langsung:
         // dari ?view= ( hasil pemulihan 404 di GitHub Pages ) atau segmen path ( rewrite Cloudflare ).
         (function restoreViewFromUrl() {
-            var valid = ['security', 'help', 'pin', '2fa', '2fa-verify'];
+            var valid = ['security', 'help', 'pin', 'pin-new', 'pin-confirm', '2fa', '2fa-verify'];
             var params = new URLSearchParams(location.search);
             var seg = location.pathname.split('/').filter(Boolean).pop();
             var name = params.get('view') || (valid.indexOf(seg) !== -1 ? seg : null);

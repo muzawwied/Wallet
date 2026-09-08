@@ -14,3 +14,7 @@
 /profile/2fa/ /profile/ 200
 /profile/2fa-verify /profile/ 200
 /profile/2fa-verify/ /profile/ 200
+/profile/pin-new /profile/ 200
+/profile/pin-new/ /profile/ 200
+/profile/pin-confirm /profile/ 200
+/profile/pin-confirm/ /profile/ 200
