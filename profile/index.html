@@ -459,7 +459,7 @@
             </div>
 
             <div class="profile-section">
-                <div class="menu-item" onclick="switchView('view-security')">
+                <div class="menu-item" onclick="goBack('view-security')">
                     <div class="menu-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -504,7 +504,7 @@
 
         <div id="view-security" class="page-view">
             <div class="scanner-header">
-                <button class="back-btn" onclick="switchView('view-profile')" aria-label="Kembali">
+                <button class="back-btn" onclick="goBack('view-profile')" aria-label="Kembali">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="19" y1="12" x2="5" y2="12"/>
                         <polyline points="12 19 5 12 12 5"/>
@@ -573,7 +573,7 @@
 
         <div id="view-pin" class="page-view">
             <div class="scanner-header">
-                <button class="back-btn" onclick="switchView('view-security')" aria-label="Kembali">
+                <button class="back-btn" onclick="goBack('view-security')" aria-label="Kembali">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="19" y1="12" x2="5" y2="12"/>
                         <polyline points="12 19 5 12 12 5"/>
@@ -697,6 +697,11 @@
 
         const _BASE = location.hostname === 'muzawwied.github.io' ? '/Wallet' : '';
 
+        // mundur pakai riwayat browser — TIDAK nambah entri baru (biar ga bolak-balik)
+        function goBack(targetViewId) {
+            if ((window._navDepth || 0) > 0) { window.history.back(); }
+            else { switchView(targetViewId); }
+        }
         function switchView(viewId, isHistory = false) {
             document.querySelectorAll('.page-view').forEach(view => {
                 view.classList.remove('active');
@@ -713,11 +718,13 @@
                 if (!isHistory) {
                     const pathName = viewId === 'view-profile' ? _BASE + '/profile/' : _BASE + '/profile/' + viewId.replace('view-', '');
                     window.history.pushState({ view: viewId }, '', pathName);
+                    window._navDepth = (window._navDepth || 0) + 1;
                 }
             }
         }
 
         window.addEventListener('popstate', function(e) {
+            window._navDepth = Math.max(0, (window._navDepth || 0) - 1);
             if (e.state && e.state.view && document.getElementById(e.state.view)) {
                 switchView(e.state.view, true);
             } else {
@@ -940,7 +947,7 @@
             if (target === 'old') { _pinchg.nw = ''; _pinchg.cf = ''; }
             else if (target === 'new') { _pinchg.cf = ''; }
             pinChgRender();
-            switchView(target === 'old' ? 'view-pin' : 'view-pin-new');
+            goBack(target === 'old' ? 'view-pin' : 'view-pin-new');
         }
         function pinChgSubmit() {
             const err = document.getElementById('pinchg-cf-error');
@@ -1123,17 +1130,17 @@
         }
         function cancel2faVerify() {
             if (_totpFlow === 'setup') {
-                switchView('view-2fa'); // kembali ke halaman QR
+                goBack('view-2fa'); // kembali ke halaman QR
             } else {
                 const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
-                switchView('view-security');
+                goBack('view-security');
             }
         }
 
         function cancel2fa() {
             // kembali tanpa menyelesaikan → posisi toggle dikembalikan
             const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
-            switchView('view-security');
+            goBack('view-security');
         }
 
         function fa2Set(enabled) {
