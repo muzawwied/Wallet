@@ -548,12 +548,29 @@
                     <div class="toggle-item">
                         <div>
                             <div style="font-size: 0.9rem; font-weight: 500; color: var(--text-main);">Autentikasi 2-Langkah (2FA)</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Aktifkan 2FA</div>
+                            <div id="fa2-note" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Minta PIN setiap kali aplikasi dibuka</div>
                         </div>
                         <label class="switch">
-                            <input type="checkbox">
+                            <input type="checkbox" id="fa2-toggle" onchange="onToggle2fa(this)">
                             <span class="slider"></span>
                         </label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                    <label class="form-label" style="margin-bottom: 12px; margin-left: 0;">Pengaturan PIN</label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background-color: #f8fafc; border-radius: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            <div>
+                                <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">PIN</div>
+                                <div id="pin-status-text" style="font-size: 0.75rem; color: var(--text-muted);">Memuat…</div>
+                            </div>
+                        </div>
+                        <button id="pin-edit-btn" type="button" onclick="switchView('view-pin')" style="padding: 9px 14px; border: none; border-radius: 10px; background-color: #0f172a; color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Buat PIN</button>
                     </div>
                 </div>
 
@@ -577,21 +594,38 @@
 
                 <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
                     <label class="form-label" style="margin-bottom: 12px; margin-left: 0;">Aktivitas</label>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background-color: #f8fafc; border-radius: 12px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
-                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                                </svg>
-                                <div>
-                                    <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">Aktivitas Sesi</div>
-                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Aktif</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div id="activity-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="padding: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">Memuat aktivitas…</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="view-pin" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="switchView('view-security')" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title">Pengaturan PIN</span>
+            </div>
+            <div class="settings-content">
+                <div id="pin-old-group" class="form-group">
+                    <label class="form-label">PIN Lama</label>
+                    <input id="pin-old-input" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN lama" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
+                </div>
+                <div class="form-group" style="margin-top: 14px;">
+                    <label class="form-label">PIN Baru</label>
+                    <input id="pin-new-input" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit angka" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
+                </div>
+                <div class="form-group" style="margin-top: 14px;">
+                    <label class="form-label">Ulangi PIN Baru</label>
+                    <input id="pin-confirm-input" type="password" inputmode="numeric" maxlength="6" placeholder="Ulangi PIN baru" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
+                </div>
+                <div id="pin-form-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
+                <button type="button" onclick="savePin()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Simpan PIN</button>
             </div>
         </div>
 
@@ -666,6 +700,7 @@
             const targetView = document.getElementById(viewId);
             if (targetView) {
                 targetView.classList.add('active');
+                if (viewId === 'view-security') { loadActivity(); }
                 if (!isHistory) {
                     const pathName = viewId === 'view-profile' ? _BASE + '/profile/' : _BASE + '/profile/' + viewId.replace('view-', '');
                     window.history.pushState({ view: viewId }, '', pathName);
@@ -689,8 +724,18 @@
         }
 
         function logoutAkun() {
+            // catat aktivitas keluar (fire-and-forget) sebelum sesi dibersihkan
+            try {
+                var _lo = localStorage.getItem('user_wallet_address');
+                var _ls = localStorage.getItem('user_wallet_secret');
+                if (_lo && _ls) {
+                    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': _ls },
+                        body: JSON.stringify({ action: 'log_activity', address: _lo, kind: 'logout' }), keepalive: true }).catch(function () {});
+                }
+            } catch (e) {}
+            try { sessionStorage.removeItem('wallet_fa2_unlocked'); } catch (e) {}
             // HAPUS SEMUA data akun — cache riwayat/notif/avatar/ID lama tidak boleh bocor ke akun berikutnya
-            ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name',
+            ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name', 'wallet_fa2',
              'wallet_display_id', 'wallet_state_cache', 'wallet_notifs_cache_v1', 'wallet_notifs_dismissed_v1',
              'saved_user_avatar', 'avatar_is_custom', 'google_avatar_url'].forEach(function (k) {
                 localStorage.removeItem(k);
@@ -799,6 +844,132 @@
             }
         }
 
+        // ===== KEAMANAN: state PIN & 2FA dari server =====
+        let _hasPin = false, _fa2 = false;
+
+        function refreshSecurityUi() {
+            const t = document.getElementById('fa2-toggle');
+            if (t) t.checked = _fa2;
+            const note = document.getElementById('fa2-note');
+            if (note) note.textContent = _fa2 ? 'Aktif — PIN diminta setiap aplikasi dibuka' : 'Minta PIN setiap kali aplikasi dibuka';
+            const st = document.getElementById('pin-status-text');
+            if (st) st.textContent = _hasPin ? 'PIN terpasang' : 'Belum ada PIN';
+            const pb = document.getElementById('pin-edit-btn');
+            if (pb) pb.textContent = _hasPin ? 'Ubah PIN' : 'Buat PIN';
+            const pg = document.getElementById('pin-old-group');
+            if (pg) pg.style.display = _hasPin ? '' : 'none';
+        }
+
+        function savePin() {
+            const errEl = document.getElementById('pin-form-error');
+            errEl.textContent = '';
+            const newPin = document.getElementById('pin-new-input').value.trim();
+            const confirmPin = document.getElementById('pin-confirm-input').value.trim();
+            const oldPin = _hasPin ? document.getElementById('pin-old-input').value.trim() : '';
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
+            if (_hasPin && !/^\d{6}$/.test(oldPin)) { errEl.textContent = 'Masukkan PIN lama (6 digit)'; return; }
+            if (!/^\d{6}$/.test(newPin)) { errEl.textContent = 'PIN baru harus 6 digit angka'; return; }
+            if (newPin !== confirmPin) { errEl.textContent = 'PIN baru tidak sama — ulangi lagi'; return; }
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'pin_set', address: addr, pin: newPin, old_pin: oldPin })
+            }).then(r => r.json()).then(d => {
+                if (d && d.success) {
+                    _hasPin = true;
+                    refreshSecurityUi();
+                    document.getElementById('pin-old-input').value = '';
+                    document.getElementById('pin-new-input').value = '';
+                    document.getElementById('pin-confirm-input').value = '';
+                    switchView('view-security');
+                } else {
+                    errEl.textContent = (d && d.error) || 'Gagal menyimpan PIN';
+                }
+            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+        }
+
+        function onToggle2fa(el) {
+            if (el.checked) {
+                if (!_hasPin) {
+                    // 2FA butuh PIN — arahkan ke form PIN dulu
+                    el.checked = false;
+                    const fe = document.getElementById('pin-form-error');
+                    if (fe) fe.textContent = 'Buat PIN dulu untuk mengaktifkan 2FA';
+                    switchView('view-pin');
+                    return;
+                }
+                fa2Set(true);
+            } else {
+                fa2Set(false);
+            }
+        }
+
+        function fa2Set(enabled) {
+            const addr = localStorage.getItem('user_wallet_address');
+            const sec = localStorage.getItem('user_wallet_secret');
+            if (!addr || !sec) return;
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'fa2_set', address: addr, enabled: enabled ? 1 : 0 })
+            }).then(r => r.json()).then(d => {
+                const t = document.getElementById('fa2-toggle');
+                if (d && d.success) {
+                    _fa2 = enabled;
+                    try { localStorage.setItem('wallet_fa2', enabled ? '1' : '0'); } catch (e) {}
+                    refreshSecurityUi();
+                    loadActivity();
+                } else {
+                    if (t) t.checked = _fa2; // gagal → kembalikan posisi
+                    const note = document.getElementById('fa2-note');
+                    if (note) { note.textContent = (d && d.error) || 'Gagal mengubah pengaturan'; note.style.color = '#ef4444'; }
+                }
+            }).catch(() => { const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2; });
+        }
+
+        // ===== KEAMANAN: feed aktivitas akun =====
+        let _actLoaded = false;
+        function fmtAgo(iso) {
+            if (!iso) return '';
+            const t = new Date(iso.endsWith('Z') ? iso : iso + 'Z').getTime();
+            const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+            if (s < 60) return 'Baru saja';
+            if (s < 3600) return Math.floor(s / 60) + ' menit lalu';
+            if (s < 86400) return Math.floor(s / 3600) + ' jam lalu';
+            return new Date(t).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        }
+
+        const ACT_ICONS = {
+            login: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#0f172a;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+            pin: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#0f172a;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+            fa2: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+            akun: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#0f172a;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            logout: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#ef4444;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+        };
+
+        function loadActivity() {
+            const wrap = document.getElementById('activity-list');
+            if (!wrap) return;
+            const addr = localStorage.getItem('user_wallet_address');
+            if (!addr) { wrap.innerHTML = '<div style="padding: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">Sesi tidak valid</div>'; return; }
+            fetch(API + '?action=activity_list&address=' + encodeURIComponent(addr), { cache: 'no-store' })
+                .then(r => r.json()).then(d => {
+                    if (d && d.success) {
+                        const acts = (d.data && d.data.activities) || [];
+                        if (!acts.length) {
+                            wrap.innerHTML = '<div style="padding: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">Belum ada aktivitas</div>';
+                            return;
+                        }
+                        wrap.innerHTML = acts.map(function (a) {
+                            const icon = ACT_ICONS[a.kind] || ACT_ICONS.login;
+                            return '<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background-color: #f8fafc; border-radius: 12px;">' +
+                                '<div style="display: flex; align-items: center; gap: 12px;">' + icon +
+                                '<div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">' + (a.detail || a.kind) + '</div></div>' +
+                                '<div style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">' + fmtAgo(a.created_at) + '</div></div>';
+                        }).join('');
+                        _actLoaded = true;
+                    }
+                }).catch(() => { if (!_actLoaded) wrap.innerHTML = '<div style="padding: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">Gagal memuat aktivitas</div>'; });
+        }
+
         // ===== PAGAR LOGIN: wajib punya sesi dompet, kalau tidak → halaman login =====
         (function requireAuth() {
             try {
@@ -828,6 +999,11 @@
                             document.getElementById('profile-name-text').innerText = d.display_name;
                             localStorage.setItem('saved_user_name', d.display_name);
                         }
+                        // state keamanan: PIN & 2FA
+                        _hasPin = !!d.has_pin;
+                        _fa2 = !!d.fa2;
+                        try { localStorage.setItem('wallet_fa2', _fa2 ? '1' : '0'); } catch (e) {}
+                        refreshSecurityUi();
                         // SERVER sumber kebenaran ID tampilan — ID lama di localStorage diganti otomatis
                         if (d.display_id && /^[A-Za-z0-9]{10}$/.test(d.display_id)) {
                             serverDid = true;

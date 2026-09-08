@@ -49,6 +49,15 @@ async function ensureSchema(db) {
     PRIMARY KEY (addr, tx_id)
   )`).run();
   try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN display_id TEXT`).run(); } catch (e) {}
+  try { await db.prepare(`ALTER TABLE wallet_accounts ADD COLUMN fa2 INTEGER NOT NULL DEFAULT 0`).run(); } catch (e) {}
+  await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    address TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    detail TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`).run();
+  try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_activity_addr ON wallet_activity (address)`).run(); } catch (e) {}
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_connect_requests (
     id TEXT PRIMARY KEY,
     address TEXT NOT NULL,
@@ -92,6 +101,13 @@ function sha256(text) {
 
 const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
 
+async function logActivity(db, address, kind, detail) {
+  try {
+    await db.prepare('INSERT INTO wallet_activity (address, kind, detail) VALUES (?, ?, ?)')
+      .bind(address, String(kind || 'lain').slice(0, 20), String(detail || '').slice(0, 120)).run();
+  } catch (e) {}
+}
+
 export async function onRequestGet({ request, env }) {
   const db = env.DB;
   if (!db) return j({ error: 'D1 not bound' }, 500);
@@ -107,6 +123,12 @@ export async function onRequestGet({ request, env }) {
 
     const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
     if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+
+    // ---- riwayat aktivitas akun (login, PIN, 2FA) ----
+    if (url.searchParams.get('action') === 'activity_list') {
+      const rows = await db.prepare('SELECT kind, detail, created_at FROM wallet_activity WHERE address = ? ORDER BY id DESC LIMIT 30').bind(address).all();
+      return j({ success: true, data: { activities: rows.results || [] } });
+    }
 
     // ---- notifikasi (transaksi terbaru sebagai notif, penanda dibaca per alamat) ----
     if (url.searchParams.get('action') === 'external_pull') {
@@ -133,7 +155,7 @@ export async function onRequestGet({ request, env }) {
       return j({ success: true, data: { notifications, connect_requests: (pend.results || []).map(p => ({ id: p.id, app: p.app, created_at: p.created_at })) } });
     }
 
-    const acc = await db.prepare('SELECT balance, display_name, email, picture, display_id FROM wallet_accounts WHERE address = ?').bind(address).first();
+    const acc = await db.prepare('SELECT balance, display_name, email, picture, display_id, fa2, pin_hash, pin_salt FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
 
     const txs = await db.prepare(
@@ -152,7 +174,7 @@ export async function onRequestGet({ request, env }) {
       amount: t.amount
     }));
 
-    return j({ success: true, address: address, balance: acc.balance, display_id: acc.display_id || '', display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
+    return j({ success: true, address: address, balance: acc.balance, display_id: acc.display_id || '', fa2: !!acc.fa2, has_pin: !!(acc.pin_hash && acc.pin_salt), display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
   } catch (err) {
     return j({ error: err.message }, 500);
   }
@@ -428,6 +450,7 @@ export async function onRequestPost({ request, env }) {
       }
       const p = await db.prepare('SELECT display_name, picture FROM wallet_accounts WHERE address = ?').bind(acc.address).first();
       await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
+      await logActivity(db, acc.address, 'login', 'Login berhasil (Google)');
       return j({ success: true, address: acc.address, secret: secret, display_id: acc.display_id || '', display_name: (p && p.display_name) || '', picture: (p && p.picture) || '' });
     }
 
@@ -495,6 +518,7 @@ export async function onRequestPost({ request, env }) {
       const secretHash = await sha256(secret);
       await db.prepare('INSERT INTO wallet_accounts (address, secret_hash, balance, role, email, pin_hash, pin_salt) VALUES (?, ?, 0, ?, ?, ?, ?)')
         .bind(address, secretHash, 'user', email, pinHash, pinSalt).run();
+      await logActivity(db, address, 'akun', 'Akun dibuat (email + PIN)');
       return j({ success: true, address, secret });
     }
 
@@ -526,7 +550,68 @@ export async function onRequestPost({ request, env }) {
       const secret = randomSecret();
       const secretHash = await sha256(secret);
       await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
+      await logActivity(db, acc.address, 'login', 'Login berhasil');
       return j({ success: true, address: acc.address, secret, display_id: acc.display_id || '' });
+    }
+
+    // ===== KEAMANAN: buat / ganti PIN dari halaman Keamanan =====
+    if (action === 'pin_set') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      const newPin = String(body.pin || '');
+      const oldPin = String(body.old_pin || '');
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      if (acc.locked_until && Date.now() < new Date(acc.locked_until + 'Z').getTime()) return j({ error: 'Akun terkunci sementara. Coba lagi dalam ' + Math.ceil((new Date(acc.locked_until + 'Z').getTime() - Date.now()) / 60000) + ' menit.' }, 423);
+      if (!/^\d{6}$/.test(newPin)) return j({ error: 'PIN baru harus 6 digit angka' }, 400);
+      if (acc.pin_hash && acc.pin_salt) {
+        if (!oldPin) return j({ error: 'Masukkan PIN lama' }, 400);
+        if ((await hashPin(oldPin, acc.pin_salt)) !== acc.pin_hash) {
+          const fails = (acc.failed_logins || 0) + 1;
+          if (fails >= 5) {
+            await db.prepare("UPDATE wallet_accounts SET locked_until = datetime('now', '+15 minutes'), failed_logins = 0 WHERE address = ?").bind(address).run();
+            return j({ error: 'Terlalu banyak percobaan gagal. Akun terkunci 15 menit.' }, 423);
+          }
+          await db.prepare('UPDATE wallet_accounts SET failed_logins = ? WHERE address = ?').bind(fails, address).run();
+          return j({ error: 'PIN lama salah. Sisa percobaan: ' + (5 - fails) }, 401);
+        }
+      }
+      const pinSalt = [...new Uint8Array(16)].map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
+      await db.prepare('UPDATE wallet_accounts SET pin_hash = ?, pin_salt = ?, failed_logins = 0, locked_until = NULL WHERE address = ?')
+        .bind(await hashPin(newPin, pinSalt), pinSalt, address).run();
+      await logActivity(db, address, 'pin', acc.pin_hash ? 'PIN diganti' : 'PIN dibuat');
+      return j({ success: true, created: !acc.pin_hash });
+    }
+
+    // ===== KEAMANAN: aktif/nonaktif 2FA =====
+    if (action === 'fa2_set') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, pin_hash, pin_salt FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
+      const enabled = body.enabled ? 1 : 0;
+      if (enabled && (!acc.pin_hash || !acc.pin_salt)) return j({ error: 'Buat PIN dulu sebelum mengaktifkan 2FA' }, 400);
+      await db.prepare('UPDATE wallet_accounts SET fa2 = ? WHERE address = ?').bind(enabled, address).run();
+      await logActivity(db, address, 'fa2', enabled ? 'Autentikasi 2-langkah diaktifkan' : 'Autentikasi 2-langkah dimatikan');
+      return j({ success: true, fa2: !!enabled });
+    }
+
+    // ===== KEAMANAN: catat aktivitas dari klien (logout) =====
+    if (action === 'log_activity') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = String(request.headers.get('x-wallet-secret') || '');
+      const kind = String(body.kind || '');
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid' }, 401);
+      if (kind !== 'logout') return j({ error: 'Jenis aktivitas tidak dikenal' }, 400);
+      await logActivity(db, address, kind, 'Keluar dari akun');
+      return j({ success: true });
     }
 
     if (action === 'pin_verify') {

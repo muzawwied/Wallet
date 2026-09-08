@@ -494,6 +494,9 @@
                 localStorage.removeItem('wallet_notifs_cache_v1');
                 localStorage.removeItem('wallet_notifs_dismissed_v1');
             }
+            // sesi baru: status kunci 2FA direset (di-refresh lagi oleh state server)
+            try { sessionStorage.removeItem('wallet_fa2_unlocked'); } catch (e) {}
+            localStorage.removeItem('wallet_fa2');
             showToast('Berhasil! Membuka halaman utama...', 'success');
             setTimeout(() => { window.location.href = '../'; }, 900); // pindah ke halaman utama
         }

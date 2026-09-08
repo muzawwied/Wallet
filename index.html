@@ -1186,6 +1186,12 @@
                 const res = await fetch(API + '?action=state&address=' + encodeURIComponent(walletAddress)).then(r => r.json());
                 if (res.success) {
                     stateLoaded = true;
+                    // 2FA: cache flag (buat kunci instan saat reload) + tampilkan kunci PIN kalau aktif
+                    try {
+                        localStorage.setItem('wallet_fa2', res.fa2 ? '1' : '0');
+                        localStorage.setItem('wallet_fa2_for', walletAddress);
+                    } catch (e) {}
+                    if (res.fa2) showFa2Lock();
                     currentBalance = res.balance || 0;
                     transactions = (res.transactions || []).map(t => ({
                         id: t.id,
@@ -1593,6 +1599,67 @@
             }
         });
 
+        // ===== 2FA: layar kunci PIN — diminta sekali per sesi tab (sessionStorage) =====
+        let _fa2Pin = '';
+        function _fa2Unlocked() { try { return sessionStorage.getItem('wallet_fa2_unlocked') === '1'; } catch (e) { return false; } }
+        function showFa2Lock() {
+            if (_fa2Unlocked() || document.getElementById('fa2-lock')) return;
+            const ov = document.createElement('div');
+            ov.id = 'fa2-lock';
+            ov.style.cssText = 'position:fixed; inset:0; z-index:9999; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px;';
+            const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
+            let pad = '';
+            keys.forEach(function (k) {
+                if (k === '') { pad += '<button type="button" style="width:64px;height:64px;border:none;background:transparent;cursor:default;"></button>'; }
+                else if (k === 'del') { pad += '<button type="button" onclick="fa2Key(\'del\')" style="width:64px;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;">⌫</button>'; }
+                else { pad += '<button type="button" onclick="fa2Key(\'' + k + '\')" style="width:64px;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;">' + k + '</button>'; }
+            });
+            ov.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                '<div style="font-size:1.1rem;font-weight:700;color:#0f172a;">Masukkan PIN</div>' +
+                '<div style="font-size:0.82rem;color:#64748b;margin-top:4px;margin-bottom:20px;">PIN dibutuhkan untuk membuka Wallet</div>' +
+                '<div id="fa2-dots" style="display:flex;gap:12px;margin-bottom:18px;">' +
+                    '<span style="width:12px;height:12px;border-radius:50%;background:#e2e8f0;"></span>'.repeat(6) +
+                '</div>' +
+                '<div id="fa2-error" style="font-size:0.8rem;color:#ef4444;min-height:1.2em;margin-bottom:10px;text-align:center;"></div>' +
+                '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">' + pad + '</div>';
+            document.body.appendChild(ov);
+            _fa2Pin = '';
+        }
+        function fa2RenderDots() {
+            const dots = document.querySelectorAll('#fa2-dots span');
+            dots.forEach(function (d, idx) { d.style.background = idx < _fa2Pin.length ? '#0f172a' : '#e2e8f0'; });
+        }
+        function fa2Key(k) {
+            const err = document.getElementById('fa2-error'); if (err) err.textContent = '';
+            if (k === 'del') { _fa2Pin = _fa2Pin.slice(0, -1); }
+            else if (_fa2Pin.length < 6) { _fa2Pin += k; }
+            fa2RenderDots();
+            if (_fa2Pin.length === 6) setTimeout(fa2Verify, 150);
+        }
+        function fa2Verify() {
+            const addr = localStorage.getItem('user_wallet_address') || '';
+            const sec = localStorage.getItem('user_wallet_secret') || '';
+            if (!addr || !sec) { window.location.replace(SITE_BASE + 'auth/'); return; }
+            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
+                body: JSON.stringify({ action: 'pin_verify', address: addr, pin: _fa2Pin })
+            }).then(r => r.json()).then(d => {
+                if (d && d.success) {
+                    try { sessionStorage.setItem('wallet_fa2_unlocked', '1'); } catch (e) {}
+                    const ov = document.getElementById('fa2-lock'); if (ov) ov.remove();
+                    _fa2Pin = '';
+                } else {
+                    const err = document.getElementById('fa2-error');
+                    if (err) err.textContent = (d && d.error) || 'PIN salah — coba lagi';
+                    _fa2Pin = ''; fa2RenderDots();
+                }
+            }).catch(() => {
+                const err = document.getElementById('fa2-error');
+                if (err) err.textContent = 'Gagal terhubung — coba lagi';
+                _fa2Pin = ''; fa2RenderDots();
+            });
+        }
+
         // Anti-cache: kalau browser menghidupkan ulang halaman usang (bfcache), paksa muat versi baru
         window.addEventListener('pageshow', function (e) {
             // Balik dari bfcache: cukup refresh data diam-diam — tanpa reload & tanpa shimmer
@@ -1617,6 +1684,14 @@
                 }
             } catch (e) {}
             renderHistory(); // stateLoaded=false → skeleton shimmer tampil SEGERA di riwayat & home
+            // 2FA: kalau flag terakhir aktif utk akun ini → kunci tampil DETIK PERTAMA (tanpa nunggu server)
+            try {
+                if (localStorage.getItem('wallet_fa2') === '1' &&
+                    localStorage.getItem('wallet_fa2_for') === (localStorage.getItem('user_wallet_address') || '').toLowerCase() &&
+                    localStorage.getItem('user_logged_in') === '1') {
+                    showFa2Lock();
+                }
+            } catch (e) {}
             await initWalletAddress();
             await loadWalletState();
             updateBalanceDisplay();
