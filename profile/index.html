@@ -647,6 +647,10 @@
                     2. Tekan tombol + lalu pilih <b>Pindai kode QR</b><br>
                     3. Pindai kode di bawah dengan Authenticator
                 </div>
+                <div class="form-group" style="margin-bottom: 4px;">
+                    <label class="form-label">Nama tampilan di Authenticator</label>
+                    <input id="fa2-name-input" type="text" maxlength="30" placeholder="mis. Suniti" oninput="on2faNameInput()" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; outline: none;">
+                </div>
                 <div id="fa2-qr" style="display: flex; justify-content: center; margin: 18px 0; padding: 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;"></div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 6px;">Tidak bisa memindai? Masukkan kode ini manual di Authenticator:</div>
                 <div id="fa2-secret-text" style="font-family: monospace; font-size: 0.8rem; text-align: center; word-break: break-all; padding: 10px; background-color: #f8fafc; border-radius: 10px; margin-bottom: 16px;"></div>
@@ -965,6 +969,27 @@
         }
 
         // ===== 2FA Google Authenticator: setup =====
+        // QR di-regenerate live pas nama diganti (secret tetap sama)
+        let _totpSecretCur = '', _totpNameTimer = null;
+        function rebuild2faQr() {
+            const nameEl = document.getElementById('fa2-name-input');
+            const defName = (localStorage.getItem('saved_user_name') || '').trim().slice(0, 30);
+            const name = ((nameEl && nameEl.value ? nameEl.value : '') || defName || 'Wallet').trim().slice(0, 30) || 'Wallet';
+            const otpauth = 'otpauth://totp/' + encodeURIComponent('ClincooPay:' + name) + '?secret=' + _totpSecretCur + '&issuer=' + encodeURIComponent('ClincooPay') + '&algorithm=SHA1&digits=6&period=30';
+            try {
+                const qr = qrcode(0, 'M');
+                qr.addData(otpauth);
+                qr.make();
+                document.getElementById('fa2-qr').innerHTML = qr.createImgTag(4, 3);
+            } catch (e) {
+                document.getElementById('fa2-qr').innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 20px;">QR gagal dimuat — pakai kode manual di bawah</div>';
+            }
+        }
+        function on2faNameInput() {
+            clearTimeout(_totpNameTimer);
+            _totpNameTimer = setTimeout(rebuild2faQr, 250);
+        }
+
         function start2faSetup() {
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
@@ -977,14 +1002,10 @@
                 if (d && d.success) {
                     document.getElementById('fa2-secret-text').textContent = d.secret;
                     if (noteEl) { noteEl.textContent = 'Kode 6 digit dari Google Authenticator tiap aplikasi dibuka'; noteEl.style.color = ''; }
-                    try {
-                        const qr = qrcode(0, 'M');
-                        qr.addData(d.otpauth);
-                        qr.make();
-                        document.getElementById('fa2-qr').innerHTML = qr.createImgTag(4, 3);
-                    } catch (e) {
-                        document.getElementById('fa2-qr').innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 20px;">QR gagal dimuat — pakai kode manual di bawah</div>';
-                    }
+                    _totpSecretCur = d.secret;
+                    const nameInput = document.getElementById('fa2-name-input');
+                    if (nameInput) nameInput.value = (localStorage.getItem('saved_user_name') || '').trim().slice(0, 30);
+                    rebuild2faQr();
                     switchView('view-2fa');
                 } else {
                     const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;

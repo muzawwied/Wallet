@@ -653,14 +653,15 @@ export async function onRequestPost({ request, env }) {
       const address = String(body.address || '').toLowerCase();
       const secret = String(request.headers.get('x-wallet-secret') || '');
       if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
-      const acc = await db.prepare('SELECT secret_hash, email, totp_enabled FROM wallet_accounts WHERE address = ?').bind(address).first();
+      const acc = await db.prepare('SELECT secret_hash, email, display_name, totp_enabled FROM wallet_accounts WHERE address = ?').bind(address).first();
       if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
       if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Sesi tidak valid — silakan masuk lagi' }, 401);
       if (acc.totp_enabled) return j({ error: '2FA sudah aktif — matikan dulu untuk mengatur ulang' }, 409);
       const totpSecret = randomBase32(32);
       await db.prepare('UPDATE wallet_accounts SET totp_secret = ? WHERE address = ?').bind(totpSecret, address).run();
-      const label = acc.email ? 'Wallet:' + acc.email : 'Wallet';
-      const otpauth = 'otpauth://totp/' + encodeURIComponent(label) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('Wallet') + '&algorithm=SHA1&digits=6&period=30';
+      // nama tampilan di Google Authenticator bisa custom (default: nama profil / email)
+      const name = String(body.label || acc.display_name || acc.email || 'Wallet').trim().slice(0, 30) || 'Wallet';
+      const otpauth = 'otpauth://totp/' + encodeURIComponent('ClincooPay:' + name) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('ClincooPay') + '&algorithm=SHA1&digits=6&period=30';
       return j({ success: true, secret: totpSecret, otpauth: otpauth });
     }
 
