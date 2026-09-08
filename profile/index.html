@@ -567,10 +567,10 @@
                             </svg>
                             <div>
                                 <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">PIN</div>
-                                <div id="pin-status-text" style="font-size: 0.75rem; color: var(--text-muted);">Memuat…</div>
+                                <div id="pin-status-text" style="font-size: 0.75rem; color: var(--text-muted);">PIN terpasang</div>
                             </div>
                         </div>
-                        <button id="pin-edit-btn" type="button" onclick="switchView('view-pin')" style="padding: 9px 14px; border: none; border-radius: 10px; background-color: #0f172a; color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Buat PIN</button>
+                        <button id="pin-edit-btn" type="button" onclick="switchView('view-pin')" style="padding: 9px 14px; border: none; border-radius: 10px; background-color: #0f172a; color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Ubah PIN</button>
                     </div>
                 </div>
 
@@ -889,19 +889,9 @@
         }
 
         function onToggle2fa(el) {
-            if (el.checked) {
-                if (!_hasPin) {
-                    // 2FA butuh PIN — arahkan ke form PIN dulu
-                    el.checked = false;
-                    const fe = document.getElementById('pin-form-error');
-                    if (fe) fe.textContent = 'Buat PIN dulu untuk mengaktifkan 2FA';
-                    switchView('view-pin');
-                    return;
-                }
-                fa2Set(true);
-            } else {
-                fa2Set(false);
-            }
+            // Tidak ada gerbang PIN di klien: semua akun dibuat dengan PIN saat daftar.
+            // Kalau server ternyata menolak (akun lawas tanpa PIN), user diarahkan ke form PIN.
+            fa2Set(el.checked);
         }
 
         function fa2Set(enabled) {
@@ -921,6 +911,12 @@
                     if (t) t.checked = _fa2; // gagal → kembalikan posisi
                     const note = document.getElementById('fa2-note');
                     if (note) { note.textContent = (d && d.error) || 'Gagal mengubah pengaturan'; note.style.color = '#ef4444'; }
+                    // akun lawas tanpa PIN (dibuat sebelum era PIN) → arahkan ke form PIN
+                    if (d && d.error && d.error.indexOf('PIN') !== -1) {
+                        const fe = document.getElementById('pin-form-error');
+                        if (fe) fe.textContent = d.error;
+                        switchView('view-pin');
+                    }
                 }
             }).catch(() => { const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2; });
         }
