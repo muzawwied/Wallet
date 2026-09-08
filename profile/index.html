@@ -581,7 +581,7 @@
                                 <div id="pin-status-text" style="font-size: 0.75rem; color: var(--text-muted);">PIN terpasang</div>
                             </div>
                         </div>
-                        <button id="pin-edit-btn" type="button" onclick="switchView('view-pin')" style="padding: 9px 14px; border: none; border-radius: 10px; background-color: #0f172a; color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Ubah PIN</button>
+                        <button id="pin-edit-btn" type="button" onclick="pinChgOpen()" style="padding: 9px 14px; border: none; border-radius: 10px; background-color: #0f172a; color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Ubah PIN</button>
                     </div>
                 </div>
 
@@ -787,8 +787,12 @@
             const targetView = document.getElementById(viewId);
             if (targetView) {
                 targetView.classList.add('active');
-                if (viewId === 'view-security') { loadActivity(); }
-                if (viewId === 'view-pin' || viewId === 'view-pin-new' || viewId === 'view-pin-confirm') initPinChange();
+                if (viewId === 'view-security') { loadActivity(); refreshSecurityUi(); }
+                if (viewId === 'view-pin' || viewId === 'view-pin-new' || viewId === 'view-pin-confirm') {
+                    // keypad dibangun sekali — JANGAN reset state tiap pindah halaman (PIN yang sudah diketik harus tersimpan)
+                    const po = document.getElementById('pad-old');
+                    if (!po || !po.children.length) initPinChange();
+                }
                 if (!isHistory) {
                     const pathName = viewId === 'view-profile' ? _BASE + '/profile/' : _BASE + '/profile/' + viewId.replace('view-', '');
                     window.history.pushState({ view: viewId }, '', pathName);
@@ -975,6 +979,10 @@
             renderPinDots('pind-old', _pinchg.old.length);
             renderPinDots('pind-new', _pinchg.nw.length);
             renderPinDots('pind-cf', _pinchg.cf.length);
+        }
+        function pinChgOpen() {
+            initPinChange();
+            switchView('view-pin');
         }
         function initPinChange() {
             _pinchg = { old: '', nw: '', cf: '', busy: false };
