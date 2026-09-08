@@ -609,7 +609,7 @@
                         <polyline points="12 19 5 12 12 5"/>
                     </svg>
                 </button>
-                <span class="scanner-title">Pengaturan PIN</span>
+                <span class="scanner-title">Ubah PIN</span>
             </div>
             <div class="settings-content">
                 <div id="pin-old-group" class="form-group">
@@ -897,11 +897,11 @@
             const note = document.getElementById('fa2-note');
             if (note) note.textContent = _fa2 ? (_fa2Totp ? 'Aktif — kode Google Authenticator diminta setiap aplikasi dibuka' : 'Aktif — PIN diminta setiap aplikasi dibuka') : 'Kode 6 digit dari Google Authenticator tiap aplikasi dibuka';
             const st = document.getElementById('pin-status-text');
-            if (st) st.textContent = _hasPin ? 'PIN terpasang' : 'Belum ada PIN';
+            if (st) st.textContent = 'PIN terpasang';
             const pb = document.getElementById('pin-edit-btn');
-            if (pb) pb.textContent = _hasPin ? 'Ubah PIN' : 'Buat PIN';
+            if (pb) pb.textContent = 'Ubah PIN';
             const pg = document.getElementById('pin-old-group');
-            if (pg) pg.style.display = _hasPin ? '' : 'none';
+            if (pg) pg.style.display = '';
         }
 
         function savePin() {
@@ -909,11 +909,11 @@
             errEl.textContent = '';
             const newPin = document.getElementById('pin-new-input').value.trim();
             const confirmPin = document.getElementById('pin-confirm-input').value.trim();
-            const oldPin = _hasPin ? document.getElementById('pin-old-input').value.trim() : '';
+            const oldPin = document.getElementById('pin-old-input').value.trim();
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
             if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
-            if (_hasPin && !/^\d{6}$/.test(oldPin)) { errEl.textContent = 'Masukkan PIN lama (6 digit)'; return; }
+            if (!/^\d{6}$/.test(oldPin)) { errEl.textContent = 'Masukkan PIN lama (6 digit)'; return; }
             if (!/^\d{6}$/.test(newPin)) { errEl.textContent = 'PIN baru harus 6 digit angka'; return; }
             if (newPin !== confirmPin) { errEl.textContent = 'PIN baru tidak sama — ulangi lagi'; return; }
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
@@ -962,7 +962,7 @@
                         const qr = qrcode(0, 'M');
                         qr.addData(d.otpauth);
                         qr.make();
-                        document.getElementById('fa2-qr').innerHTML = qr.createImgTag(180, 8);
+                        document.getElementById('fa2-qr').innerHTML = qr.createImgTag(4, 3);
                     } catch (e) {
                         document.getElementById('fa2-qr').innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 20px;">QR gagal dimuat — pakai kode manual di bawah</div>';
                     }
@@ -1260,7 +1260,7 @@
         // Pulihkan sub-halaman (Keamanan/Pusat Bantuan) saat refresh/dibuka langsung:
         // dari ?view= ( hasil pemulihan 404 di GitHub Pages ) atau segmen path ( rewrite Cloudflare ).
         (function restoreViewFromUrl() {
-            var valid = ['security', 'help'];
+            var valid = ['security', 'help', 'pin', '2fa'];
             var params = new URLSearchParams(location.search);
             var seg = location.pathname.split('/').filter(Boolean).pop();
             var name = params.get('view') || (valid.indexOf(seg) !== -1 ? seg : null);
