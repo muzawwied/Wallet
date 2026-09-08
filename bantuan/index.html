@@ -156,6 +156,38 @@
         .support-card .s-title { font-size: 0.95rem; font-weight: 600; }
         .support-card .s-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
 
+        .headset-btn {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main);
+            padding: 6px;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+        .headset-btn:hover { background-color: #f1f5f9; }
+
+        .toast-note {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%);
+            background-color: #0f172a;
+            color: #fff;
+            font-size: 0.82rem;
+            padding: 12px 18px;
+            border-radius: 12px;
+            max-width: 85vw;
+            text-align: center;
+            z-index: 50;
+            animation: toastIn 0.25s ease;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+        .support-card { cursor: pointer; }
         .version-foot {
             text-align: center;
             margin-top: 24px;
@@ -174,12 +206,12 @@
             </svg>
         </button>
         <span class="scanner-title">Pusat Bantuan</span>
-        <div style="margin-left: auto; display: flex; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);">
+        <button type="button" class="headset-btn" onclick="contactSupport()" aria-label="Hubungi dukungan">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
                 <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
             </svg>
-        </div>
+        </button>
     </div>
 
     <div class="help-content">
@@ -290,7 +322,7 @@
             </div></div>
         </div>
 
-        <div class="support-card">
+        <div class="support-card" onclick="contactSupport()">
             <div class="s-title">Masih butuh bantuan?</div>
             <div class="s-sub">Hubungi tim dukungan ClincooPay melalui email. Sertakan alamat dompet kamu (dimulai dengan 0x…) agar bantuan lebih cepat.</div>
         </div>
@@ -302,6 +334,29 @@
     </div>
 
     <script>
+        // ===== ALAMAT EMAIL DUKUNGAN =====
+        // Isi di sini nanti setelah domain aktif, contoh: 'dukungan@clincoopay.id'
+        // Begitu diisi, icon headset & card dukungan otomatis jadi tombol kirim email.
+        const SUPPORT_EMAIL = '';
+
+        function contactSupport() {
+            if (SUPPORT_EMAIL) {
+                location.href = 'mailto:' + SUPPORT_EMAIL;
+                return;
+            }
+            showToast('Email dukungan segera tersedia — sedang menyiapkan domain.');
+        }
+
+        function showToast(msg) {
+            const old = document.querySelector('.toast-note');
+            if (old) old.remove();
+            const t = document.createElement('div');
+            t.className = 'toast-note';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function () { if (t.parentNode) t.remove(); }, 2600);
+        }
+
         function toggleFaq(element) {
             const answer = element.querySelector('.faq-answer');
             const wasActive = element.classList.contains('active');
