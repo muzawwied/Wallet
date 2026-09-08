@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://wallet-muz.pages.dev https://www.googletagmanager.com https://*.google-analytics.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <script>if (top !== self) top.location = self.location;</script>
+
+    <script>
+    // Pagar dini: belum login → sembunyikan halaman & lempar ke auth SEBELUM konten tampil
+    (function () {
+        try {
+            var v = function (k) { var x = localStorage.getItem(k); return (!x || x === 'undefined' || x === 'null') ? null : x; };
+            if (!v('user_wallet_address') || !v('user_wallet_secret') || localStorage.getItem('user_logged_in') !== '1') {
+                document.documentElement.style.display = 'none';
+                location.replace('../auth/');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) { location.reload(); }
+    });
+    </script>
+    <title>ClincooPay — Pusat Bantuan</title>
+    <link rel="icon" type="image/png" href="../logo.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .scanner-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 16px 12px;
+            background-color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanner-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .help-content {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 16px 16px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .help-cat {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-top: 8px;
+        }
+
+        .faq-item {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .faq-question {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+        }
+
+        .faq-question span {
+            font-size: 0.93rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .faq-icon {
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .faq-answer-inner {
+            padding: 0 16px 14px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .support-card {
+            margin-top: 10px;
+            background-color: rgba(56, 189, 248, 0.12);
+            border-radius: 16px;
+            padding: 18px 16px;
+            text-align: center;
+        }
+
+        .support-card .s-title { font-size: 0.95rem; font-weight: 600; }
+        .support-card .s-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+
+        .version-foot {
+            text-align: center;
+            margin-top: 24px;
+        }
+        .version-foot .v-label { font-size: 0.85rem; color: var(--text-muted); }
+        .version-foot .v-num { font-size: 0.95rem; font-weight: 600; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="scanner-header">
+        <button class="back-btn" onclick="location.href='../profile/'" aria-label="Kembali">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+        </button>
+        <span class="scanner-title">Pusat Bantuan</span>
+        <div style="margin-left: auto; display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            </svg>
+        </div>
+    </div>
+
+    <div class="help-content">
+
+        <div class="help-cat">PIN &amp; Keamanan</div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Apa itu PIN dan kapan PIN diminta?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                PIN adalah kode 6 digit yang kamu buat saat pendaftaran. PIN diminta saat masuk dengan PIN, saat membuka aplikasi (jika kunci PIN aktif di Keamanan), dan setiap kali kamu mengirim saldo.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Bagaimana cara mengubah PIN?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Buka Profil → Keamanan → Ubah PIN. Alurnya 3 halaman: masukkan PIN lama → buat PIN baru → ulangi PIN baru. PIN baru tidak boleh sama dengan PIN lama. Jika PIN lama salah, kamu akan diminta mengulang dari awal.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Lupa PIN — apakah saya tetap bisa masuk?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Bisa. Masuk lewat akun Google dengan email yang sama seperti pendaftaran. Namun kirim saldo dan ubah PIN tetap membutuhkan PIN — jika benar-benar lupa, hubungi tim dukungan ClincooPay melalui email untuk reset PIN.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Kenapa akun saya terkunci sementara?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Sistem mengunci akun selama 15 menit setelah 5 kali percobaan PIN/kode yang salah berturut-turut. Ini melindungi akunmu dari percobaan menebak. Akun terbuka otomatis setelah waktu habis — tunggu saja, tidak perlu reset.
+            </div></div>
+        </div>
+
+        <div class="help-cat">Autentikasi 2-Langkah (2FA)</div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Bagaimana cara memasang 2FA Google Authenticator?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Buka Profil → Keamanan → nyalakan toggle "Autentikasi 2-Langkah". Pindai QR yang muncul dengan Google Authenticator (nama tampilannya bisa kamu ubah sesuka hati), lalu ketik kode 6 digit di halaman verifikasi. Setelah aktif, kode diminta setiap kali aplikasi dibuka.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>HP autentikator saya hilang — bagaimana masuk?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Di layar kode, masukkan PIN kamu sebagai ganti kode Authenticator — kunci terbuka. Lalu matikan 2FA dari Profil → Keamanan (PIN juga bisa dipakai untuk mematikannya) dan pasang ulang dengan HP yang baru.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Bisakah mengganti nama yang tampil di Google Authenticator?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Bisa. Matikan 2FA lalu pasang ulang — di halaman QR ada kolom "Nama tampilan di Authenticator" yang bisa diubah sesukamu, QR-nya langsung menyesuaikan saat kamu mengetik.
+            </div></div>
+        </div>
+
+        <div class="help-cat">Transaksi</div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Kenapa setiap kirim saldo diminta PIN?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Semua transaksi diverifikasi dengan PIN — bukan hanya di tampilan, tetapi juga langsung dicek di server. Tanpa PIN yang benar, transaksi ditolak. Ini melindungi saldo kamu bahkan jika perangkat atau sesi diambil alih orang lain.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Apa syarat kirim saldo?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Penerima harus sudah terdaftar di ClincooPay, nominal minimal Rp 1.000, dan kamu tidak bisa mengirim ke alamat dompet sendiri. Saldo akan tiba seketika.
+            </div></div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span>Saldo saya tidak bertambah setelah menerima — kenapa?</span>
+                <svg class="faq-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="faq-answer"><div class="faq-answer-inner">
+                Tarik ke bawah di halaman Dompet untuk memuat ulang saldo terbaru. Jika tetap tidak berubah, tutup dan buka kembali aplikasi — data saldo selalu diambil langsung dari server.
+            </div></div>
+        </div>
+
+        <div class="support-card">
+            <div class="s-title">Masih butuh bantuan?</div>
+            <div class="s-sub">Hubungi tim dukungan ClincooPay melalui email. Sertakan alamat dompet kamu (dimulai dengan 0x…) agar bantuan lebih cepat.</div>
+        </div>
+
+        <div class="version-foot">
+            <div class="v-label">Versi Sistem</div>
+            <div class="v-num">v2.2.0</div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFaq(element) {
+            const answer = element.querySelector('.faq-answer');
+            const wasActive = element.classList.contains('active');
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+                item.querySelector('.faq-answer').style.maxHeight = null;
+            });
+            if (!wasActive) {
+                element.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+            }
+        }
+    </script>
+</body>
+</html>
