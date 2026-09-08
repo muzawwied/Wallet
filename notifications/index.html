@@ -294,7 +294,28 @@
         }
         let _lastSnap = '';
         let _rendered = [];
+        let _retryTimer = null;
         const CACHE_KEY = 'wallet_notifs_cache_v1';
+        const DISMISS_KEY = 'wallet_notifs_dismissed_v1';
+
+        // permintaan koneksi yang sudah dikonfirmasi/ditolak user — TIDAK boleh muncul lagi
+        function getDismissed() {
+            try {
+                const c = JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null');
+                if (c && c.addr === getWalletAddr() && c.ids) {
+                    const now = Date.now();
+                    const ids = {};
+                    Object.keys(c.ids).forEach(function (k) { if (now - c.ids[k] < 60 * 60 * 1000) ids[k] = c.ids[k]; });
+                    return ids;
+                }
+            } catch (e) {}
+            return {};
+        }
+        function saveDismissed(ids) {
+            try { localStorage.setItem(DISMISS_KEY, JSON.stringify({ addr: getWalletAddr(), ids: ids })); } catch (e) {}
+        }
+        function dismissReq(rid) { const ids = getDismissed(); ids[rid] = Date.now(); saveDismissed(ids); }
+        function undismissReq(rid) { const ids = getDismissed(); delete ids[rid]; saveDismissed(ids); }
 
         function renderList(list) {
             const section = document.getElementById('notif-section');
@@ -367,17 +388,37 @@
                 '</div></div>';
         }
 
+        // hapus kartu permintaan dari layar SEKARANG (optimistic) + bersihkan sisa judul grup
+        function removeReqCard(rid) {
+            const card = document.querySelector('.notif-item[data-req="' + rid + '"]');
+            if (card) {
+                const prev = card.previousElementSibling;
+                card.remove();
+                if (prev && prev.classList && prev.classList.contains('notif-date-group') &&
+                    !document.querySelector('.notif-item[data-req]')) {
+                    prev.remove();
+                }
+            }
+            const section = document.getElementById('notif-section');
+            if (section && !section.querySelector('.notif-item')) { renderList(_rendered); }
+        }
+
         async function respondConnect(rid, act) {
             const secret = localStorage.getItem('user_wallet_secret') || '';
             const btns = document.querySelectorAll('[data-req="' + rid + '"]');
             btns.forEach(function (b) { b.style.opacity = '0.55'; b.style.pointerEvents = 'none'; });
+            // kartu langsung hilang dari layar & ditandai — polling berikutnya tidak menampilkannya lagi
+            dismissReq(rid);
+            removeReqCard(rid);
             try {
                 const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: act, request_id: rid, address: getWalletAddr(), secret: secret }) });
                 const d = await res.json();
                 if (d && d.success) { pullNotifs(); return; }
             } catch (e) {}
-            btns.forEach(function (b) { b.style.opacity = '1'; b.style.pointerEvents = 'auto'; });
+            // gagal kirim ke server → batal dismiss & tampilkan lagi supaya user bisa mencoba ulang
+            undismissReq(rid);
+            pullNotifs();
         }
 
         function itemMarkup(n) {
@@ -393,15 +434,25 @@
             document.getElementById('notif-section').innerHTML = emptyMarkup();
         }
 
+        // gagal muat (server dingin/jaringan) → TETAP shimmer, jangan pindah ke "empty".
+        // Coba lagi tiap 2 detik — jangan nunggu interval 5 detik
+        function retrySoon() {
+            if (!_rendered.length) renderSkeleton();
+            if (_retryTimer) return;
+            _retryTimer = setTimeout(function () { _retryTimer = null; pullNotifs(); }, 2000);
+        }
+
         async function pullNotifs() {
             const section = document.getElementById('notif-section');
             if (!getWalletAddr()) { renderEmpty(); return; }
             try {
-                const res = await fetch(API + '?action=external_pull&addr=' + encodeURIComponent(getWalletAddr()));
-                if (!res.ok) { if (!_rendered.length) renderEmpty(); return; }
+                const res = await fetch(API + '?action=external_pull&addr=' + encodeURIComponent(getWalletAddr()), { cache: 'no-store' });
+                if (!res.ok) { retrySoon(); return; }
                 const d = await res.json();
+                const dismissed = getDismissed();
                 const notifs = (d.data && d.data.notifications) || [];
-                const reqs = (d.data && d.data.connect_requests) || [];
+                // permintaan yang sudah dikonfirmasi/ditolak user disaring — tidak muncul lagi
+                const reqs = ((d.data && d.data.connect_requests) || []).filter(function (r) { return !dismissed[r.id]; });
                 const snap = JSON.stringify(notifs.map(function (n) { return n.id + ':' + n.read + ':' + n.created_at; })) + '|' + JSON.stringify(reqs);
                 if (snap === _lastSnap) return;
                 _lastSnap = snap;
@@ -421,7 +472,7 @@
                     renderList(_rendered);
                 }
                 try { localStorage.setItem(CACHE_KEY, JSON.stringify({ addr: getWalletAddr(), snap: snap, items: _rendered })); } catch (e) {}
-            } catch (e) { if (!_rendered.length) renderEmpty(); }
+            } catch (e) { retrySoon(); }
         }
 
         function markAsRead(element) {

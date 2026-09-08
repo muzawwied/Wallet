@@ -691,7 +691,7 @@
         function logoutAkun() {
             // HAPUS SEMUA data akun — cache riwayat/notif/avatar/ID lama tidak boleh bocor ke akun berikutnya
             ['user_wallet_address', 'user_wallet_secret', 'user_logged_in', 'saved_user_name',
-             'wallet_display_id', 'wallet_state_cache', 'wallet_notifs_cache_v1',
+             'wallet_display_id', 'wallet_state_cache', 'wallet_notifs_cache_v1', 'wallet_notifs_dismissed_v1',
              'saved_user_avatar', 'avatar_is_custom', 'google_avatar_url'].forEach(function (k) {
                 localStorage.removeItem(k);
             });
