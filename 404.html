@@ -32,8 +32,8 @@
     // alias path pendek
     var aliases = { '/keamanan':'profile/?view=security', '/ubah-pin':'profile/?view=pin', '/profil':'profile/', '/pusat-bantuan':'bantuan/', '/bantuan':'bantuan/', '/notifikasi':'notifications/', '/masuk':'auth/', '/dompet':'', '/scan':'', '/riwayat':'' };
     if (Object.prototype.hasOwnProperty.call(aliases, p)) { location.replace(base + aliases[p] + q + h); return; }
-    // selain pola yang dikenal -> halaman utama
-    setTimeout(function () { location.replace(base); }, 800);
+    // selain pola yang dikenal -> LANGSUNG ke halaman utama
+    location.replace(base);
 })();
 </script>
 </body>
