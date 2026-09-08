@@ -364,7 +364,7 @@
 
         <!-- View 1: Google Login -->
         <div id="view-google" class="auth-view active">
-            <div id="google-btn-container" style="min-height: 44px; width: 100%; display: flex; justify-content: center;"></div>
+            <div id="google-btn-container" style="min-height: 44px; width: 100%; display: flex; justify-content: center; align-items: center;"><span id="google-btn-loading" style="width: 26px; height: 26px; border: 3px solid #e2e8f0; border-top-color: #94a3b8; border-radius: 50%; animation: spin .8s linear infinite; display: inline-block;"></span></div>
             <p id="google-fallback-note" style="display: none; color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: 6px 0 0;">Login Google belum aktif sebentar — muat ulang halaman beberapa saat lagi.</p>
         </div>
 
@@ -501,6 +501,11 @@
             setTimeout(() => { window.location.href = '../'; }, 900); // pindah ke halaman utama
         }
 
+        function hideGoogleLoading() {
+            const sp = document.getElementById('google-btn-loading');
+            if (sp) sp.remove();
+        }
+
         async function loadGoogle() {
             try {
                 const r = await fetch(API + '?action=google_config');
@@ -516,16 +521,25 @@
                             ux_mode: 'popup',
                             auto_select: false
                         });
-                        google.accounts.id.renderButton(document.getElementById('google-btn-container'),
+                        const cont = document.getElementById('google-btn-container');
+                        google.accounts.id.renderButton(cont,
                             { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: (window.innerWidth > 600 ? 400 : 300), locale: 'id' });
+                        // begitu tombol google beneran masuk ke container -> spinner diangkat
+                        const obs = new MutationObserver(function () {
+                            for (const c of cont.children) { if (c.id !== 'google-btn-loading') { hideGoogleLoading(); obs.disconnect(); return; } }
+                        });
+                        obs.observe(cont, { childList: true });
                     };
+                    gs.onerror = function () { hideGoogleLoading(); const n = document.getElementById('google-fallback-note'); if (n) n.style.display = 'block'; };
                     document.head.appendChild(gs);
                 } else {
+                    hideGoogleLoading();
                     const n = document.getElementById('google-fallback-note');
                     n.style.display = 'block';
                     console.error('Konfig Google tidak valid:', d);
                 }
             } catch (e) {
+                hideGoogleLoading();
                 const n = document.getElementById('google-fallback-note');
                 n.style.display = 'block';
                 console.error('Gagal memuat tombol Google:', e);
