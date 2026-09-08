@@ -1194,7 +1194,7 @@
                         date: fmtTime(t.date),
                         amount: (t.type === 'masuk' ? '+' : '-') + formatRupiah(t.amount)
                     }));
-                    try { localStorage.setItem('wallet_state_cache', JSON.stringify({ b: currentBalance, txs: transactions })); } catch (e) {}
+                    try { localStorage.setItem('wallet_state_cache', JSON.stringify({ a: walletAddress, b: currentBalance, txs: transactions })); } catch (e) {}
                     updateBalanceDisplay();
                     renderHistory();
                 } else if (res.not_found) {
@@ -1608,7 +1608,9 @@
             // Shimmer hanya muncul kalau memang belum ada data sama sekali (pertama kali).
             try {
                 const c = JSON.parse(localStorage.getItem('wallet_state_cache') || 'null');
-                if (c && Array.isArray(c.txs)) {
+                // cache hanya dipakai kalau alamatnya sama dengan akun yang sedang login
+                // → riwayat akun lama TIDAK pernah muncul di akun baru setelah logout+login
+                if (c && Array.isArray(c.txs) && c.a && c.a === (localStorage.getItem('user_wallet_address') || '').toLowerCase()) {
                     currentBalance = c.b || 0;
                     transactions = c.txs;
                     stateLoaded = true;

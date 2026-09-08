@@ -473,7 +473,7 @@
             return d;
         }
 
-        function saveLocalAndGo(address, secret, name, picture) {
+        function saveLocalAndGo(address, secret, name, picture, displayId) {
             if (!/^0x[0-9a-f]{40}$/.test(String(address || ''))) {
                 switchAuthView('google');
                 showToast('Sesi tidak valid, silakan pilih akun Google lagi.', 'error');
@@ -484,6 +484,15 @@
             if (secret) localStorage.setItem('user_wallet_secret', secret);
             if (name) localStorage.setItem('saved_user_name', name);
             if (picture) localStorage.setItem('google_avatar_url', picture);
+            // ID tampilan dari SERVER: benar sejak detik pertama (tanpa nunggu sync profil).
+            // Akun baru (belum punya ID) → hapus ID lama supaya tidak terbawa dari akun sebelumnya.
+            if (displayId && /^[A-Za-z0-9]{10}$/.test(displayId)) {
+                localStorage.setItem('wallet_display_id', displayId);
+            } else {
+                localStorage.removeItem('wallet_display_id');
+                localStorage.removeItem('wallet_state_cache');
+                localStorage.removeItem('wallet_notifs_cache_v1');
+            }
             showToast('Berhasil! Membuka halaman utama...', 'success');
             setTimeout(() => { window.location.href = '../'; }, 900); // pindah ke halaman utama
         }
@@ -599,7 +608,7 @@
             switchAuthView('loading');
             try {
                 const res = await callApi(payload, headers);
-                saveLocalAndGo(res.address, res.secret, res.display_name || '', res.picture || '');
+                saveLocalAndGo(res.address, res.secret, res.display_name || '', res.picture || '', res.display_id || '');
             } catch (e) {
                 switchAuthView(mode === 'login' ? 'pin-login' : 'create-pin');
                 errEl.textContent = e.message; showToast(e.message, 'error');

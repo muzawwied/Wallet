@@ -321,7 +321,8 @@
             if (!getWalletAddr()) { renderEmpty(); return; }
             try {
                 const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-                if (c && typeof c.snap === 'string') {
+                // cache hanya untuk akun yang sedang login — notif akun lama tidak boleh bocor
+                if (c && typeof c.snap === 'string' && c.addr && c.addr === getWalletAddr()) {
                     _lastSnap = c.snap;
                     _rendered = c.items || [];
                     renderList(_rendered);
@@ -419,7 +420,7 @@
                 } else {
                     renderList(_rendered);
                 }
-                try { localStorage.setItem(CACHE_KEY, JSON.stringify({ snap: snap, items: _rendered })); } catch (e) {}
+                try { localStorage.setItem(CACHE_KEY, JSON.stringify({ addr: getWalletAddr(), snap: snap, items: _rendered })); } catch (e) {}
             } catch (e) { if (!_rendered.length) renderEmpty(); }
         }
 

@@ -133,7 +133,7 @@ export async function onRequestGet({ request, env }) {
       return j({ success: true, data: { notifications, connect_requests: (pend.results || []).map(p => ({ id: p.id, app: p.app, created_at: p.created_at })) } });
     }
 
-    const acc = await db.prepare('SELECT balance, display_name, email, picture FROM wallet_accounts WHERE address = ?').bind(address).first();
+    const acc = await db.prepare('SELECT balance, display_name, email, picture, display_id FROM wallet_accounts WHERE address = ?').bind(address).first();
     if (!acc) return j({ error: 'Akun tidak ditemukan', not_found: true }, 404);
 
     const txs = await db.prepare(
@@ -152,7 +152,7 @@ export async function onRequestGet({ request, env }) {
       amount: t.amount
     }));
 
-    return j({ success: true, address: address, balance: acc.balance, display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
+    return j({ success: true, address: address, balance: acc.balance, display_id: acc.display_id || '', display_name: acc.display_name || '', email: acc.email || '', picture: acc.picture || '', transactions: history });
   } catch (err) {
     return j({ error: err.message }, 500);
   }
@@ -404,7 +404,7 @@ export async function onRequestPost({ request, env }) {
       if (!row) return j({ error: 'Sesi Google kedaluwarsa — silakan mulai ulang' }, 401);
       const email = row.email;
       const pin = String(body.pin || '');
-      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE email = ?').bind(email).first();
+      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until, display_id FROM wallet_accounts WHERE email = ?').bind(email).first();
       if (!acc || !acc.pin_hash || !acc.pin_salt) return j({ error: 'Akun tidak ditemukan — buat PIN dulu' }, 404);
       if (acc.locked_until && Date.now() < new Date(acc.locked_until + 'Z').getTime()) {
         return j({ error: 'Akun terkunci sementara. Coba lagi beberapa menit.' }, 423);
@@ -428,7 +428,7 @@ export async function onRequestPost({ request, env }) {
       }
       const p = await db.prepare('SELECT display_name, picture FROM wallet_accounts WHERE address = ?').bind(acc.address).first();
       await db.prepare('DELETE FROM google_pending_tokens WHERE nonce = ?').bind(row.nonce).run();
-      return j({ success: true, address: acc.address, secret: secret, display_name: (p && p.display_name) || '', picture: (p && p.picture) || '' });
+      return j({ success: true, address: acc.address, secret: secret, display_id: acc.display_id || '', display_name: (p && p.display_name) || '', picture: (p && p.picture) || '' });
     }
 
     if (action === 'google_register') {
@@ -501,7 +501,7 @@ export async function onRequestPost({ request, env }) {
     if (action === 'auth_login') {
       const email = String(body.email || '').trim().toLowerCase();
       const pin = String(body.pin || '');
-      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE email = ?').bind(email).first();
+      const acc = await db.prepare('SELECT address, pin_hash, pin_salt, failed_logins, locked_until, display_id FROM wallet_accounts WHERE email = ?').bind(email).first();
       if (!acc) return j({ error: 'Email atau PIN salah' }, 401);
       if (acc.locked_until) {
         const lockUntil = new Date(acc.locked_until + 'Z').getTime();
@@ -526,7 +526,7 @@ export async function onRequestPost({ request, env }) {
       const secret = randomSecret();
       const secretHash = await sha256(secret);
       await db.prepare('UPDATE wallet_accounts SET secret_hash = ?, failed_logins = 0, locked_until = NULL WHERE address = ?').bind(secretHash, acc.address).run();
-      return j({ success: true, address: acc.address, secret });
+      return j({ success: true, address: acc.address, secret, display_id: acc.display_id || '' });
     }
 
     if (action === 'pin_verify') {
