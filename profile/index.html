@@ -432,6 +432,8 @@
         .faq-item.active .faq-icon {
             transform: rotate(180deg);
         }
+        .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: fa2spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+        @keyframes fa2spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -625,7 +627,7 @@
                     <input id="pin-confirm-input" type="password" inputmode="numeric" maxlength="6" placeholder="Ulangi PIN baru" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
                 </div>
                 <div id="pin-form-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
-                <button type="button" onclick="savePin()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Simpan PIN</button>
+                <button type="button" id="pin-save-btn" onclick="savePin()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Simpan PIN</button>
             </div>
         </div>
 
@@ -640,34 +642,34 @@
                 <span class="scanner-title">Autentikasi 2-Langkah</span>
             </div>
             <div class="settings-content">
-                <div id="fa2-setup-section">
-                    <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6;">
-                        1. Buka aplikasi <b>Google Authenticator</b> di HP kamu<br>
-                        2. Tekan tombol + lalu pilih <b>Pindai kode QR</b><br>
-                        3. Pindai kode di bawah, lalu masukkan kode 6 digit yang muncul
-                    </div>
-                    <div id="fa2-qr" style="display: flex; justify-content: center; margin: 18px 0; padding: 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;"></div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 6px;">Tidak bisa memindai? Masukkan kode ini manual di Authenticator:</div>
-                    <div id="fa2-secret-text" style="font-family: monospace; font-size: 0.8rem; text-align: center; word-break: break-all; padding: 10px; background-color: #f8fafc; border-radius: 10px; margin-bottom: 16px;"></div>
-                    <div class="form-group">
-                        <label class="form-label">Kode dari Authenticator</label>
-                        <input id="fa2-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="6 digit angka" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
-                    </div>
-                    <div id="fa2-form-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
-                    <button type="button" onclick="confirm2faSetup()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Verifikasi &amp; Aktifkan</button>
+                <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6;">
+                    1. Buka aplikasi <b>Google Authenticator</b> di HP kamu<br>
+                    2. Tekan tombol + lalu pilih <b>Pindai kode QR</b><br>
+                    3. Pindai kode di bawah dengan Authenticator
                 </div>
-                <div id="fa2-disable-section" style="display: none;">
-                    <div style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6;">
-                        Masukkan kode 6 digit dari <b>Google Authenticator</b> untuk mematikan 2FA.<br>
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">HP autentikator hilang? Masukkan PIN kamu sebagai gantinya.</span>
-                    </div>
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label class="form-label">Kode Authenticator / PIN</label>
-                        <input id="fa2-disable-input" type="password" inputmode="numeric" maxlength="6" placeholder="6 digit" style="width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; letter-spacing: 4px;">
-                    </div>
-                    <div id="fa2-disable-error" style="font-size: 0.8rem; color: #ef4444; margin-top: 10px; min-height: 1em;"></div>
-                    <button type="button" onclick="confirm2faDisable()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Matikan 2FA</button>
-                </div>
+                <div id="fa2-qr" style="display: flex; justify-content: center; margin: 18px 0; padding: 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;"></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 6px;">Tidak bisa memindai? Masukkan kode ini manual di Authenticator:</div>
+                <div id="fa2-secret-text" style="font-family: monospace; font-size: 0.8rem; text-align: center; word-break: break-all; padding: 10px; background-color: #f8fafc; border-radius: 10px; margin-bottom: 16px;"></div>
+                <button type="button" onclick="go2faVerify()" style="width: 100%; margin-top: 10px; padding: 14px; border: none; border-radius: 12px; background-color: #0f172a; color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Lanjut ke Verifikasi</button>
+            </div>
+        </div>
+
+        <div id="view-2fa-verify" class="page-view">
+            <div class="scanner-header">
+                <button class="back-btn" onclick="cancel2faVerify()" aria-label="Kembali">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <span class="scanner-title" id="fa2v-title">Masukkan Kode</span>
+            </div>
+            <div class="settings-content" style="display: flex; flex-direction: column; align-items: center;">
+                <div id="fa2v-sub" style="font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 20px;"></div>
+                <div id="fa2v-dots" style="display: flex; gap: 12px; margin-bottom: 14px;"></div>
+                <div id="fa2v-error" style="font-size: 0.8rem; color: #ef4444; min-height: 1.2em; margin-bottom: 6px; text-align: center;"></div>
+                <div id="fa2v-busy" style="font-size: 0.8rem; color: var(--text-muted); min-height: 1.2em; margin-bottom: 6px; text-align: center;"></div>
+                <div id="fa2v-pad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;"></div>
             </div>
         </div>
 
@@ -904,8 +906,24 @@
             if (pg) pg.style.display = '';
         }
 
+        // animasi loading tombol: tombol berubah jadi spinner + teks, nonaktif selama proses
+        function btnLoading(btn, on, label) {
+            if (!btn) return;
+            if (on) {
+                btn.dataset.oldHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.style.opacity = '0.75';
+                btn.innerHTML = '<span class="spin"></span>' + (label || 'Memproses...');
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.innerHTML = btn.dataset.oldHtml || btn.innerHTML;
+            }
+        }
+
         function savePin() {
             const errEl = document.getElementById('pin-form-error');
+            const saveBtn = document.getElementById('pin-save-btn');
             errEl.textContent = '';
             const newPin = document.getElementById('pin-new-input').value.trim();
             const confirmPin = document.getElementById('pin-confirm-input').value.trim();
@@ -916,9 +934,11 @@
             if (!/^\d{6}$/.test(oldPin)) { errEl.textContent = 'Masukkan PIN lama (6 digit)'; return; }
             if (!/^\d{6}$/.test(newPin)) { errEl.textContent = 'PIN baru harus 6 digit angka'; return; }
             if (newPin !== confirmPin) { errEl.textContent = 'PIN baru tidak sama — ulangi lagi'; return; }
+            btnLoading(saveBtn, true, 'Menyimpan...');
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
                 body: JSON.stringify({ action: 'pin_set', address: addr, pin: newPin, old_pin: oldPin })
             }).then(r => r.json()).then(d => {
+                btnLoading(saveBtn, false);
                 if (d && d.success) {
                     _hasPin = true;
                     refreshSecurityUi();
@@ -929,7 +949,7 @@
                 } else {
                     errEl.textContent = (d && d.error) || 'Gagal menyimpan PIN';
                 }
-            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+            }).catch(() => { btnLoading(saveBtn, false); errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
         }
 
         function onToggle2fa(el) {
@@ -949,15 +969,14 @@
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
             if (!addr || !sec) return;
+            const noteEl = document.getElementById('fa2-note');
+            if (noteEl) { noteEl.style.color = ''; noteEl.textContent = 'Menyiapkan kode QR...'; }
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
                 body: JSON.stringify({ action: 'totp_setup', address: addr })
             }).then(r => r.json()).then(d => {
                 if (d && d.success) {
-                    document.getElementById('fa2-setup-section').style.display = '';
-                    document.getElementById('fa2-disable-section').style.display = 'none';
                     document.getElementById('fa2-secret-text').textContent = d.secret;
-                    document.getElementById('fa2-code-input').value = '';
-                    document.getElementById('fa2-form-error').textContent = '';
+                    if (noteEl) { noteEl.textContent = 'Kode 6 digit dari Google Authenticator tiap aplikasi dibuka'; noteEl.style.color = ''; }
                     try {
                         const qr = qrcode(0, 'M');
                         qr.addData(d.otpauth);
@@ -979,57 +998,105 @@
             });
         }
 
-        function confirm2faSetup() {
-            const errEl = document.getElementById('fa2-form-error');
-            const code = document.getElementById('fa2-code-input').value.trim();
-            const addr = localStorage.getItem('user_wallet_address');
-            const sec = localStorage.getItem('user_wallet_secret');
-            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
-            if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Masukkan kode 6 digit dari Authenticator'; return; }
-            fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
-                body: JSON.stringify({ action: 'totp_verify', address: addr, code: code })
-            }).then(r => r.json()).then(d => {
-                if (d && d.success) {
-                    _fa2 = true; _fa2Totp = true;
-                    try { localStorage.setItem('wallet_fa2', 'totp'); } catch (e) {}
-                    refreshSecurityUi();
-                    loadActivity();
-                    switchView('view-security');
-                } else {
-                    errEl.textContent = (d && d.error) || 'Kode salah — coba lagi';
-                }
-            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+        // ===== 2FA: halaman verifikasi dengan keyboard custom (gaya input PIN) =====
+        let _totpCode = '', _totpFlow = 'setup', _totpBusy = false;
+        function fa2vRenderDots() {
+            const box = document.getElementById('fa2v-dots');
+            box.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const s = document.createElement('span');
+                s.style.cssText = 'width:12px;height:12px;border-radius:50%;background:' + (i < _totpCode.length ? '#0f172a' : '#e2e8f0');
+                box.appendChild(s);
+            }
         }
-
-        // ===== 2FA Google Authenticator: matikan =====
+        function buildFa2vPad() {
+            const pad = document.getElementById('fa2v-pad'); if (!pad) return;
+            const keys = ['1','2','3','4','5','6','7','8','9','','0','del'];
+            pad.innerHTML = '';
+            keys.forEach(function (k) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                if (k === '') {
+                    b.style.cssText = 'width:64px;height:64px;border:none;background:transparent;cursor:default;';
+                } else {
+                    b.setAttribute('onclick', "fa2vKey('" + k + "')");
+                    b.textContent = k === 'del' ? '⌫' : k;
+                    b.style.cssText = k === 'del'
+                        ? 'width:64px;height:64px;border:none;border-radius:16px;background:transparent;font-size:1.1rem;color:#64748b;cursor:pointer;'
+                        : 'width:64px;height:64px;border:none;border-radius:16px;background:#f1f5f9;font-size:1.35rem;font-weight:600;color:#0f172a;cursor:pointer;';
+                }
+                pad.appendChild(b);
+            });
+        }
+        function open2faPad(title, sub) {
+            _totpCode = ''; _totpBusy = false;
+            const t = document.getElementById('fa2v-title'); if (t) t.textContent = title;
+            const s = document.getElementById('fa2v-sub'); if (s) s.textContent = sub;
+            const err = document.getElementById('fa2v-error'); if (err) err.textContent = '';
+            const busy = document.getElementById('fa2v-busy'); if (busy) busy.textContent = '';
+            buildFa2vPad();
+            fa2vRenderDots();
+            switchView('view-2fa-verify');
+        }
+        function go2faVerify() {
+            _totpFlow = 'setup';
+            open2faPad('Masukkan Kode Verifikasi', 'Ketik kode 6 digit dari Google Authenticator');
+        }
         function open2faDisable() {
-            document.getElementById('fa2-setup-section').style.display = 'none';
-            document.getElementById('fa2-disable-section').style.display = '';
-            document.getElementById('fa2-disable-input').value = '';
-            document.getElementById('fa2-disable-error').textContent = '';
-            switchView('view-2fa');
+            _totpFlow = 'disable';
+            open2faPad('Matikan 2FA', 'Ketik kode 6 digit dari Google Authenticator (atau PIN kamu)');
         }
-
-        function confirm2faDisable() {
-            const errEl = document.getElementById('fa2-disable-error');
-            const code = document.getElementById('fa2-disable-input').value.trim();
+        function fa2vKey(k) {
+            if (_totpBusy) return;
+            const err = document.getElementById('fa2v-error'); if (err) err.textContent = '';
+            if (k === 'del') { _totpCode = _totpCode.slice(0, -1); }
+            else if (_totpCode.length < 6) { _totpCode += k; }
+            fa2vRenderDots();
+            if (_totpCode.length === 6) setTimeout(fa2vSubmit, 150);
+        }
+        function fa2vSubmit() {
+            const err = document.getElementById('fa2v-error');
+            const busy = document.getElementById('fa2v-busy');
             const addr = localStorage.getItem('user_wallet_address');
             const sec = localStorage.getItem('user_wallet_secret');
-            if (!addr || !sec) { errEl.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
-            if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Masukkan kode 6 digit'; return; }
+            if (!addr || !sec) { err.textContent = 'Sesi tidak valid — silakan masuk lagi'; return; }
+            _totpBusy = true;
+            busy.innerHTML = '<span class="spin" style="border-color:rgba(15,23,42,.15);border-top-color:#0f172a;"></span>Memeriksa kode...';
+            const action = _totpFlow === 'setup' ? 'totp_verify' : 'totp_disable';
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
-                body: JSON.stringify({ action: 'totp_disable', address: addr, code: code })
+                body: JSON.stringify({ action: action, address: addr, code: _totpCode })
             }).then(r => r.json()).then(d => {
                 if (d && d.success) {
-                    _fa2 = false; _fa2Totp = false;
-                    try { localStorage.setItem('wallet_fa2', '0'); } catch (e) {}
+                    if (_totpFlow === 'setup') {
+                        _fa2 = true; _fa2Totp = true;
+                        try { localStorage.setItem('wallet_fa2', 'totp'); } catch (e) {}
+                    } else {
+                        _fa2 = false; _fa2Totp = false;
+                        try { localStorage.setItem('wallet_fa2', '0'); } catch (e) {}
+                    }
                     refreshSecurityUi();
                     loadActivity();
                     switchView('view-security');
                 } else {
-                    errEl.textContent = (d && d.error) || 'Kode salah — coba lagi';
+                    _totpCode = ''; _totpBusy = false;
+                    fa2vRenderDots();
+                    busy.textContent = '';
+                    err.textContent = (d && d.error) || 'Kode salah — coba lagi';
                 }
-            }).catch(() => { errEl.textContent = 'Gagal terhubung ke server — coba lagi'; });
+            }).catch(() => {
+                _totpCode = ''; _totpBusy = false;
+                fa2vRenderDots();
+                busy.textContent = '';
+                err.textContent = 'Gagal terhubung ke server — coba lagi';
+            });
+        }
+        function cancel2faVerify() {
+            if (_totpFlow === 'setup') {
+                switchView('view-2fa'); // kembali ke halaman QR
+            } else {
+                const t = document.getElementById('fa2-toggle'); if (t) t.checked = _fa2;
+                switchView('view-security');
+            }
         }
 
         function cancel2fa() {
@@ -1260,7 +1327,7 @@
         // Pulihkan sub-halaman (Keamanan/Pusat Bantuan) saat refresh/dibuka langsung:
         // dari ?view= ( hasil pemulihan 404 di GitHub Pages ) atau segmen path ( rewrite Cloudflare ).
         (function restoreViewFromUrl() {
-            var valid = ['security', 'help', 'pin', '2fa'];
+            var valid = ['security', 'help', 'pin', '2fa', '2fa-verify'];
             var params = new URLSearchParams(location.search);
             var seg = location.pathname.split('/').filter(Boolean).pop();
             var name = params.get('view') || (valid.indexOf(seg) !== -1 ? seg : null);

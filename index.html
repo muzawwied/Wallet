@@ -1637,7 +1637,9 @@
             const dots = document.querySelectorAll('#fa2-dots span');
             dots.forEach(function (d, idx) { d.style.background = idx < _fa2Pin.length ? '#0f172a' : '#e2e8f0'; });
         }
+        let _fa2Busy = false;
         function fa2Key(k) {
+            if (_fa2Busy) return;
             const err = document.getElementById('fa2-error'); if (err) err.textContent = '';
             if (k === 'del') { _fa2Pin = _fa2Pin.slice(0, -1); }
             else if (_fa2Pin.length < 6) { _fa2Pin += k; }
@@ -1645,27 +1647,33 @@
             if (_fa2Pin.length === 6) setTimeout(fa2Verify, 150);
         }
         function fa2Verify() {
+            if (_fa2Busy) return;
             const addr = localStorage.getItem('user_wallet_address') || '';
             const sec = localStorage.getItem('user_wallet_secret') || '';
             if (!addr || !sec) { window.location.replace(SITE_BASE + 'auth/'); return; }
+            _fa2Busy = true;
+            const busyEl = document.getElementById('fa2-error');
+            if (busyEl) { busyEl.style.color = '#64748b'; busyEl.textContent = 'Memeriksa kode...'; }
             const payload = _fa2Mode === 'totp'
                 ? { action: 'totp_verify', address: addr, code: _fa2Pin }
                 : { action: 'pin_verify', address: addr, pin: _fa2Pin };
             fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-wallet-secret': sec },
                 body: JSON.stringify(payload)
             }).then(r => r.json()).then(d => {
+                _fa2Busy = false;
                 if (d && d.success) {
                     try { sessionStorage.setItem('wallet_fa2_unlocked', '1'); } catch (e) {}
                     const ov = document.getElementById('fa2-lock'); if (ov) ov.remove();
                     _fa2Pin = '';
                 } else {
                     const err = document.getElementById('fa2-error');
-                    if (err) err.textContent = (d && d.error) || (_fa2Mode === 'totp' ? 'Kode salah — coba lagi' : 'PIN salah — coba lagi');
+                    if (err) { err.style.color = '#ef4444'; err.textContent = (d && d.error) || (_fa2Mode === 'totp' ? 'Kode salah — coba lagi' : 'PIN salah — coba lagi'); }
                     _fa2Pin = ''; fa2RenderDots();
                 }
             }).catch(() => {
+                _fa2Busy = false;
                 const err = document.getElementById('fa2-error');
-                if (err) err.textContent = 'Gagal terhubung — coba lagi';
+                if (err) { err.style.color = '#ef4444'; err.textContent = 'Gagal terhubung — coba lagi'; }
                 _fa2Pin = ''; fa2RenderDots();
             });
         }

@@ -12,3 +12,5 @@
 /profile/pin/ /profile/ 200
 /profile/2fa /profile/ 200
 /profile/2fa/ /profile/ 200
+/profile/2fa-verify /profile/ 200
+/profile/2fa-verify/ /profile/ 200
