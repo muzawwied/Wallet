@@ -401,6 +401,7 @@
         .pin-key { width: 70px; height: 70px; border-radius: 50%; border: none; background-color: #f8fafc; color: var(--text-main); font-size: 1.5rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
         .pin-key:active { background-color: #e2e8f0; transform: scale(0.92); }
         .pin-key.ghost { background-color: transparent; cursor: default; pointer-events: none; }
+        .pin-slot { width: 32px; height: 32px; border-radius: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 600; color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -583,7 +584,12 @@
             <div class="settings-content" style="align-items: center;">
                 <div style="font-weight: 600; font-size: 1rem; text-align: center;">Masukkan PIN Lama</div>
                 <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">PIN yang kamu pakai saat ini</div>
-                <div id="pind-old" class="pin-dots"></div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 24px 0 16px;">
+                    <div id="pind-old" class="pin-dots" style="margin: 0;"></div>
+                    <button type="button" id="eye-old" onclick="togglePinReveal('old')" aria-label="Tampilkan PIN" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; padding: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <span id="pinchg-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
                 <div id="pad-old" class="pin-pad" style="margin-top: 8px;"></div>
             </div>
@@ -602,7 +608,12 @@
             <div class="settings-content" style="align-items: center;">
                 <div style="font-weight: 600; font-size: 1rem; text-align: center;">Buat PIN Baru</div>
                 <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">6 digit angka — jangan yang mudah ditebak</div>
-                <div id="pind-new" class="pin-dots"></div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 24px 0 16px;">
+                    <div id="pind-new" class="pin-dots" style="margin: 0;"></div>
+                    <button type="button" id="eye-nw" onclick="togglePinReveal('nw')" aria-label="Tampilkan PIN" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; padding: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <span id="pinchg-error-new" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
                 <div id="pad-new" class="pin-pad" style="margin-top: 8px;"></div>
             </div>
@@ -621,7 +632,12 @@
             <div class="settings-content" style="align-items: center;">
                 <div style="font-weight: 600; font-size: 1rem; text-align: center;">Ulangi PIN Baru</div>
                 <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 4px;">Ketik ulang PIN baru yang sama</div>
-                <div id="pind-cf" class="pin-dots"></div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 24px 0 16px;">
+                    <div id="pind-cf" class="pin-dots" style="margin: 0;"></div>
+                    <button type="button" id="eye-cf" onclick="togglePinReveal('cf')" aria-label="Tampilkan PIN" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; padding: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <span id="pinchg-cf-error" style="color: #ef4444; font-size: 0.85rem; min-height: 1.2em; text-align: center;"></span>
                 <div id="pad-cf" class="pin-pad" style="margin-top: 8px;"></div>
             </div>
@@ -853,20 +869,40 @@
                 pad.appendChild(b);
             });
         }
-        function renderPinDots(dotsId, len) {
+        function renderPinDots(dotsId, len, stage, val) {
             const box = document.getElementById(dotsId); if (!box) return;
+            const reveal = stage && _pinReveal[stage];
+            box.style.gap = reveal ? '8px' : '';
             box.innerHTML = '';
-            for (let i = 0; i < 6; i++) {
-                const s = document.createElement('span');
-                s.className = 'pin-dot' + (i < len ? ' filled' : '');
-                box.appendChild(s);
+            if (reveal) {
+                for (let i = 0; i < 6; i++) {
+                    const s = document.createElement('span');
+                    s.className = 'pin-slot';
+                    s.textContent = i < len ? val[i] : '';
+                    box.appendChild(s);
+                }
+            } else {
+                for (let i = 0; i < 6; i++) {
+                    const s = document.createElement('span');
+                    s.className = 'pin-dot' + (i < len ? ' filled' : '');
+                    box.appendChild(s);
+                }
             }
+        }
+        const EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+        const EYE_OFF_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+        let _pinReveal = { old: false, nw: false, cf: false };
+        function togglePinReveal(stage) {
+            _pinReveal[stage] = !_pinReveal[stage];
+            const btn = document.getElementById('eye-' + stage);
+            if (btn) btn.innerHTML = _pinReveal[stage] ? EYE_OFF_SVG : EYE_SVG;
+            pinChgRender();
         }
         let _pinchg = { old: '', nw: '', cf: '', busy: false };
         function pinChgRender() {
-            renderPinDots('pind-old', _pinchg.old.length);
-            renderPinDots('pind-new', _pinchg.nw.length);
-            renderPinDots('pind-cf', _pinchg.cf.length);
+            renderPinDots('pind-old', _pinchg.old.length, 'old', _pinchg.old);
+            renderPinDots('pind-new', _pinchg.nw.length, 'nw', _pinchg.nw);
+            renderPinDots('pind-cf', _pinchg.cf.length, 'cf', _pinchg.cf);
         }
         function pinChgOpen() {
             initPinChange();
@@ -874,6 +910,11 @@
         }
         function initPinChange() {
             _pinchg = { old: '', nw: '', cf: '', busy: false };
+            _pinReveal = { old: false, nw: false, cf: false };
+            ['old','nw','cf'].forEach(function (st) {
+                const btn = document.getElementById('eye-' + st);
+                if (btn) btn.innerHTML = EYE_SVG;
+            });
             ['pinchg-error','pinchg-error-new','pinchg-cf-error'].forEach(function (id) {
                 const e = document.getElementById(id); if (e) e.textContent = '';
             });
