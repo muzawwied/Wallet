@@ -1,46 +1,23 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClincooPay — Halaman tidak ditemukan</title>
-<meta name="robots" content="noindex">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found</title>
+  <link rel="stylesheet" href="assets/css/style.css?v=1788858214">
 </head>
-<body style="font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;color:#0f172a;">
-<div style="padding:24px;">
-    <div style="font-size:44px;margin-bottom:10px;">🔍</div>
-    <h1 style="font-size:20px;margin:0 0 8px;font-weight:700;">Halaman tidak ditemukan</h1>
-    <p style="color:#64748b;font-size:14px;margin:0 0 20px;">Alamat yang kamu buka tidak tersedia. Mengalihkan ke halaman utama…</p>
-    <a id="home" href="/">Kembali ke Beranda</a>
-</div>
-<script>
-// GitHub Pages tidak mendukung rewrite server. Halaman ini memulihkan URL lama/virtual
-// yang dikenal, dan selain itu OTOMATIS mengalihkan ke halaman utama (ala repo Clincoo).
-(function () {
-    var base = location.hostname.indexOf('github.io') !== -1 ? '/Wallet/' : '/';
-    document.getElementById('home').href = base;
-    var p = decodeURIComponent(location.pathname).replace(/^\/Wallet(?=\/|$)/, '');
-    var q = location.search, h = location.hash, m;
-    // pola lama: /<seg>.html -> /<seg>/
-    m = p.match(/^\/?([A-Za-z0-9_-]+)\.html$/);
-    if (m) { location.replace(base + m[1] + '/' + q + h); return; }
-    // sub-halaman profil virtual: /profile/<view> -> /profile/?view=<view>
-    var views = ['security','help','pin','pin-new','pin-confirm','2fa','2fa-verify'];
-    m = p.match(/^\/profile\/([a-z0-9-]+)\/?$/);
-    if (m && views.indexOf(m[1]) !== -1) { location.replace(base + 'profile/?view=' + m[1] + q + h); return; }
-    // sub-halaman app: /transaksi/kirim -> ?page=transaksi&sub=kirim (langsung buka halamannya)
-    m = p.match(/^\/transaksi\/(kirim|terima)\/?$/);
-    if (m) { location.replace(base + '?page=transaksi&sub=' + m[1] + q + h); return; }
-    m = p.match(/^\/(dompet|scan|riwayat|transaksi)\/?$/);
-    if (m) { location.replace(base + '?page=' + m[1] + q + h); return; }
-
-    // alias path pendek
-    var aliases = { '/keamanan':'profile/?view=security', '/ubah-pin':'profile/?view=pin', '/profil':'profile/', '/pusat-bantuan':'bantuan/', '/bantuan':'bantuan/', '/notifikasi':'notifications/', '/masuk':'auth/', '/dompet':'', '/scan':'', '/riwayat':'' };
-    if (Object.prototype.hasOwnProperty.call(aliases, p)) { location.replace(base + aliases[p] + q + h); return; }
-    // selain pola yang dikenal -> LANGSUNG ke halaman utama
-    location.replace(base);
-})();
-</script>
+<body>
+  <section class="hero" style="min-height:100vh;">
+    <div class="hero-blob b1"></div>
+    <div class="container">
+      <span class="kicker">Error 404</span>
+      <h1 style="font-size:clamp(2.4rem,6vw,4.4rem);margin:20px 0 18px;">This page took <em style="font-style:normal;color:var(--accent);">a wrong turn</em>.</h1>
+      <p class="hero-lead">The page you're looking for doesn't exist or was moved. Let's get you back somewhere useful.</p>
+      <div class="hero-cta">
+        <a href="index.html" class="btn btn-primary">Back to Home <span class="arrow">→</span></a>
+        <a href="projects.html" class="btn btn-outline">See Projects</a>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
