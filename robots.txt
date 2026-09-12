@@ -1,3 +1,5 @@
+# ClincooPay — robots.txt
 User-agent: *
 Allow: /
-Sitemap: /sitemap.xml
+
+Sitemap: https://wallet-muz.pages.dev/sitemap.xml
