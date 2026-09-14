@@ -182,7 +182,7 @@ export async function onRequestGet({ request, env }) {
         read: readSet.has(t.id),
         created_at: t.created_at
       }));
-      // permintaan koneksi ClincooPay yang menunggu konfirmasi di aplikasi Wallet
+      // permintaan koneksi ClinqooPay yang menunggu konfirmasi di aplikasi Wallet
       const pend = await db.prepare(
         "SELECT id, app, created_at FROM wallet_connect_requests WHERE address = ? AND status = 'pending' AND created_at > datetime('now', '-10 minutes')"
       ).bind(address).all();
@@ -291,7 +291,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true });
     }
 
-    // ===== CLINCOOPAY: daftarkan ID tampilan (10 karakter, per perangkat pemilik alamat) =====
+    // ===== CLINQOOPAY: daftarkan ID tampilan (10 karakter, per perangkat pemilik alamat) =====
     if (action === 'register_display_id') {
       const address = String(body.address || '').toLowerCase();
       const displayId = String(body.display_id || '').trim();
@@ -306,7 +306,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true });
     }
 
-    // ===== CLINCOOPAY: permintaan koneksi (dari halaman auth Clincoo) via ID tampilan =====
+    // ===== CLINQOOPAY: permintaan koneksi (dari halaman auth Clinqoo) via ID tampilan =====
     if (action === 'connect_request') {
       const displayId = String(body.wallet_id || '').trim();
       const app = String(body.app || 'clincoo').toLowerCase().slice(0, 40);
@@ -321,7 +321,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, request_id: rid });
     }
 
-    // ===== CLINCOOPAY: status permintaan (polling halaman auth) =====
+    // ===== CLINQOOPAY: status permintaan (polling halaman auth) =====
     if (action === 'connect_status') {
       const rid = String(body.request_id || '').slice(0, 40);
       const row = await db.prepare("SELECT status, created_at, address FROM wallet_connect_requests WHERE id = ?").bind(rid).first();
@@ -331,7 +331,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, status: status });
     }
 
-    // ===== CLINCOOPAY: konfirmasi / tolak dari aplikasi Wallet (pemilik alamat) =====
+    // ===== CLINQOOPAY: konfirmasi / tolak dari aplikasi Wallet (pemilik alamat) =====
     if (action === 'connect_confirm' || action === 'connect_reject') {
       const rid = String(body.request_id || '').slice(0, 40);
       const address = String(body.address || '').toLowerCase();
@@ -348,7 +348,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, status: newStatus });
     }
 
-    // ===== CLINCOOPAY: finalisasi — PIN wallet → terbitkan token koneksi =====
+    // ===== CLINQOOPAY: finalisasi — PIN wallet → terbitkan token koneksi =====
     if (action === 'connect_finalize') {
       const rid = String(body.request_id || '').slice(0, 40);
       const pin = String(body.pin || '');
@@ -375,7 +375,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, token: token, address: row.address, balance: await getBalance(db, row.address) });
     }
 
-    // ===== CLINCOOPAY CONNECT: hubungkan app luar — verifikasi PIN, terbitkan token koneksi =====
+    // ===== CLINQOOPAY CONNECT: hubungkan app luar — verifikasi PIN, terbitkan token koneksi =====
     if (action === 'connect') {
       const address = String(body.address || '').toLowerCase();
       const pin = String(body.pin || '');
@@ -405,7 +405,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, token: token, balance: await getBalance(db, address) });
     }
 
-    // ===== CLINCOOPAY DELTA: mutasi saldo atas nama app terhubung (idempotent via txid) =====
+    // ===== CLINQOOPAY DELTA: mutasi saldo atas nama app terhubung (idempotent via txid) =====
     if (action === 'external_delta') {
       const address = String(body.address || '').toLowerCase();
       const token = String(body.token || '');
@@ -667,7 +667,7 @@ export async function onRequestPost({ request, env }) {
       await db.prepare('UPDATE wallet_accounts SET totp_secret = ? WHERE address = ?').bind(totpSecret, address).run();
       // nama tampilan di Google Authenticator bisa custom (default: nama profil / email)
       const name = String(body.label || acc.display_name || acc.email || 'Wallet').trim().slice(0, 30) || 'Wallet';
-      const otpauth = 'otpauth://totp/' + encodeURIComponent('ClincooPay:' + name) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('ClincooPay') + '&algorithm=SHA1&digits=6&period=30';
+      const otpauth = 'otpauth://totp/' + encodeURIComponent('ClinqooPay:' + name) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('ClinqooPay') + '&algorithm=SHA1&digits=6&period=30';
       return j({ success: true, secret: totpSecret, otpauth: otpauth });
     }
 

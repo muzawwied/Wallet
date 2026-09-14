@@ -19,7 +19,7 @@
 /profile/pin-confirm /profile/ 200
 /profile/pin-confirm/ /profile/ 200
 
-# ===== Sistem path ala Clincoo: clean URL & alias lama =====
+# ===== Sistem path ala Clinqoo: clean URL & alias lama =====
 /profil /profile/ 301
 /profil/ /profile/ 301
 /masuk /auth/ 301

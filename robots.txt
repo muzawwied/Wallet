@@ -1,4 +1,4 @@
-# ClincooPay — robots.txt
+# ClinqooPay — robots.txt
 User-agent: *
 Allow: /
 
