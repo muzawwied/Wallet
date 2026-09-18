@@ -182,7 +182,7 @@ export async function onRequestGet({ request, env }) {
         read: readSet.has(t.id),
         created_at: t.created_at
       }));
-      // permintaan koneksi ClinqooPay yang menunggu konfirmasi di aplikasi Wallet
+      // permintaan koneksi ClincooPay yang menunggu konfirmasi di aplikasi Wallet
       const pend = await db.prepare(
         "SELECT id, app, created_at FROM wallet_connect_requests WHERE address = ? AND status = 'pending' AND created_at > datetime('now', '-10 minutes')"
       ).bind(address).all();
@@ -306,7 +306,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true });
     }
 
-    // ===== CLINQOOPAY: permintaan koneksi (dari halaman auth Clinqoo) via ID tampilan =====
+    // ===== CLINQOOPAY: permintaan koneksi (dari halaman auth Clincoo) via ID tampilan =====
     if (action === 'connect_request') {
       const displayId = String(body.wallet_id || '').trim();
       const app = String(body.app || 'clincoo').toLowerCase().slice(0, 40);
@@ -667,7 +667,7 @@ export async function onRequestPost({ request, env }) {
       await db.prepare('UPDATE wallet_accounts SET totp_secret = ? WHERE address = ?').bind(totpSecret, address).run();
       // nama tampilan di Google Authenticator bisa custom (default: nama profil / email)
       const name = String(body.label || acc.display_name || acc.email || 'Wallet').trim().slice(0, 30) || 'Wallet';
-      const otpauth = 'otpauth://totp/' + encodeURIComponent('ClinqooPay:' + name) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('ClinqooPay') + '&algorithm=SHA1&digits=6&period=30';
+      const otpauth = 'otpauth://totp/' + encodeURIComponent('ClincooPay:' + name) + '?secret=' + totpSecret + '&issuer=' + encodeURIComponent('ClincooPay') + '&algorithm=SHA1&digits=6&period=30';
       return j({ success: true, secret: totpSecret, otpauth: otpauth });
     }
 

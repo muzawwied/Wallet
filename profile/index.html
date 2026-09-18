@@ -28,19 +28,19 @@
             if (e.persisted) { location.reload(); }
         });
     </script>
-    <title>ClinqooPay — Dompet Digital</title>
-    <meta name="description" content="ClinqooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
+    <title>ClincooPay — Dompet Digital</title>
+    <meta name="description" content="ClincooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
     <meta name="robots" content="noindex">
     <link rel="canonical" href="https://wallet-muz.pages.dev/profile/">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="ClinqooPay">
-    <meta property="og:title" content="ClinqooPay — Dompet Digital">
-    <meta property="og:description" content="ClinqooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
+    <meta property="og:site_name" content="ClincooPay">
+    <meta property="og:title" content="ClincooPay — Dompet Digital">
+    <meta property="og:description" content="ClincooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
     <meta property="og:url" content="https://wallet-muz.pages.dev/profile/">
     <meta property="og:image" content="https://wallet-muz.pages.dev/og-image.jpg">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ClinqooPay — Dompet Digital">
-    <meta name="twitter:description" content="ClinqooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
+    <meta name="twitter:title" content="ClincooPay — Dompet Digital">
+    <meta name="twitter:description" content="ClincooPay — dompet digital real-time untuk kirim dan terima saldo dengan aman.">
     <meta name="twitter:image" content="https://wallet-muz.pages.dev/og-image.jpg">
     <link rel="icon" type="image/png" href="../logo.png">
     
@@ -1021,7 +1021,7 @@
             const nameEl = document.getElementById('fa2-name-input');
             const defName = (localStorage.getItem('saved_user_name') || '').trim().slice(0, 30);
             const name = ((nameEl && nameEl.value ? nameEl.value : '') || defName || 'Wallet').trim().slice(0, 30) || 'Wallet';
-            const otpauth = 'otpauth://totp/' + encodeURIComponent('ClinqooPay:' + name) + '?secret=' + _totpSecretCur + '&issuer=' + encodeURIComponent('ClinqooPay') + '&algorithm=SHA1&digits=6&period=30';
+            const otpauth = 'otpauth://totp/' + encodeURIComponent('ClincooPay:' + name) + '?secret=' + _totpSecretCur + '&issuer=' + encodeURIComponent('ClincooPay') + '&algorithm=SHA1&digits=6&period=30';
             try {
                 const qr = qrcode(0, 'M');
                 qr.addData(otpauth);
@@ -1278,7 +1278,7 @@
                     }
                 }).catch(function () {});
 
-            // Daftarkan ID tampilan ke backend — dipakai ClinqooPay untuk mencari dompet.
+            // Daftarkan ID tampilan ke backend — dipakai ClincooPay untuk mencari dompet.
             // Hanya kalau server belum punya ID untuk akun ini (server selalu menang di atas).
             // Kalau 409 (ID masih tercatat milik akun lain) → buat ID baru & daftarkan ulang.
             try {
