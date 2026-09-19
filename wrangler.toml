@@ -6,3 +6,6 @@ pages_build_output_dir = "."
 binding = "DB"
 database_name = "wallet-db"
 database_id = "59e17832-235d-4bb4-b09e-a7f5f9c1f8db"
+
+[vars]
+GOOGLE_CLIENT_ID = "315756248357-a8kg228fvsqpde3tg0n3iggt2kubonoj.apps.googleusercontent.com"
