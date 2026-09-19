@@ -261,8 +261,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px 0;
+            min-height: 100vh;
+            width: 100%;
             gap: 16px;
+        }
+
+        #view-loading.auth-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            z-index: 20;
         }
 
         .spinner {
@@ -457,14 +468,13 @@
             const subTitleEl = document.getElementById('auth-subtitle-text');
             const logoEl = document.getElementById('auth-logo');
             const termsEl = document.getElementById('auth-terms-note');
-            const hideHero = (viewName === 'create-pin');
+            const hideHero = (viewName === 'create-pin' || viewName === 'loading');
             if (logoEl) logoEl.style.display = hideHero ? 'none' : 'block';
             if (titleEl) titleEl.style.display = hideHero ? 'none' : 'block';
             if (subTitleEl) subTitleEl.style.display = hideHero ? 'none' : 'block';
             if (termsEl) termsEl.style.display = (viewName === 'google') ? 'block' : 'none';
             if (viewName === 'loading') {
-                titleEl.textContent = 'Memproses...';
-                subTitleEl.textContent = 'Mohon tunggu sebentar.';
+                // Logo dan teks disembunyikan; hanya spinner yang tampil, di tengah layar.
             } else if (viewName === 'pin-login') {
                 titleEl.textContent = 'Verifikasi Keamanan';
                 subTitleEl.textContent = 'Ketuk angka di keypad di bawah.';
