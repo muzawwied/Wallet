@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://wallet-muz.pages.dev/sitemap.xml
+Sitemap: https://wallet.clincoo.buzz/sitemap.xml
