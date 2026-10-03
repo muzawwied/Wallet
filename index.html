@@ -637,7 +637,10 @@
         .keypad-key { width: 68px; height: 68px; border: none; outline: none; border-radius: 50%; background-color: #f8fafc; color: #0f172a; font-size: 1.45rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
         .keypad-key:active { background-color: #e2e8f0; transform: scale(0.92); }
         .keypad-key.keypad-back { color: #64748b; }
-        .topup-qr-box { background: #ffffff; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06); }
+        .topup-qr-center { display: flex; justify-content: center; margin-top: 22px; }
+        .topup-qr-center canvas, .topup-qr-center img { width: 252px; height: 252px; border-radius: 12px; }
+        .topup-amt-label { text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 18px; }
+        .topup-amt-value { text-align: center; font-size: 1.45rem; font-weight: 700; color: #0f172a; margin-top: 2px; }
         .topup-total-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #475569; margin-top: 12px; }
         .topup-total-row strong { color: #0f172a; }
         .topup-status { text-align: center; font-size: 0.85rem; color: #64748b; margin-top: 12px; }
@@ -1133,19 +1136,20 @@
                 <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
             </div>
 
-            <button class="btn-submit" onclick="startTopup()">Buat Kode QR</button>
+            <button class="btn-submit" onclick="startTopup()">Konfirmasi</button>
             <div id="topup-error" class="flow-error"></div>
         </div>
 
         <div class="flow-container" id="topup-result" style="display: none;">
-            <div class="topup-qr-box">
-                <div id="topup-qrcode" class="square-qr-svg" style="display: flex; justify-content: center;"></div>
-                <div class="topup-total-row"><span>Nominal top up</span><strong id="topup-rp-amount"></strong></div>
-                <div class="topup-total-row"><span>Total tagihan <span style="color:#64748b">(termasuk biaya)</span></span><strong id="topup-rp-total"></strong></div>
-                <div class="topup-status" id="topup-status-text">Menunggu pembayaran…</div>
-            </div>
-            <button class="btn-submit" onclick="checkTopupStatus(true)" style="margin-top: 16px;">Sudah Bayar? Cek Status</button>
-            <button class="btn-submit" onclick="closeTopup()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Tutup</button>
+            <div id="topup-qrcode" class="topup-qr-center"></div>
+            <div class="topup-amt-label">Nominal top up</div>
+            <div class="topup-amt-value" id="topup-rp-amount"></div>
+            <div class="topup-amt-label">Total tagihan <span style="font-weight: 400;">(termasuk biaya)</span></div>
+            <div class="topup-amt-value" id="topup-rp-total"></div>
+            <div class="topup-status" id="topup-status-text">Menunggu pembayaran…</div>
+            <button class="btn-submit" onclick="checkTopupStatus(true)" style="margin-top: 20px;">Sudah Bayar? Cek Status</button>
+            <button class="btn-submit" onclick="downloadTopupQr()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Unduh QR</button>
+            <button class="btn-submit" onclick="closeTopup()" style="background: transparent; color: #64748b; box-shadow: none; margin-top: 8px;">Tutup</button>
         </div>
     </div>
 
@@ -1628,8 +1632,18 @@
             } catch (e) {
                 if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
             } finally {
-                btn.disabled = false; btn.innerHTML = 'Buat Kode QR';
+                btn.disabled = false; btn.innerHTML = 'Konfirmasi';
             }
+        }
+
+        function downloadTopupQr() {
+            const qrEl = document.getElementById('topup-qrcode');
+            const cv = qrEl && qrEl.querySelector('canvas');
+            if (!cv) return;
+            const a = document.createElement('a');
+            a.href = cv.toDataURL('image/png');
+            a.download = 'QR-TopUp-' + (currentTopupOrderId || 'order') + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
         }
 
         async function checkTopupStatus(manual) {
