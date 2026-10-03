@@ -69,6 +69,31 @@ async function ensureSchema(db) {
     created_at TEXT DEFAULT (datetime('now'))
   )`).run();
   try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wcr_addr ON wallet_connect_requests (address)`).run(); } catch (e) {}
+  // ===== Top Up QRIS (Pakasir) — sistem seperti Clincoo Pembayaran =====
+  await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_topups (
+    id TEXT PRIMARY KEY,
+    address TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    txn_ref TEXT DEFAULT '',
+    qr_string TEXT DEFAULT '',
+    total_payment INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    paid_at TEXT
+  )`).run();
+  try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wt_addr ON wallet_topups (address)`).run(); } catch (e) {}
+  await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_withdrawals (
+    id TEXT PRIMARY KEY,
+    address TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    fee INTEGER NOT NULL DEFAULT 0,
+    dest_type TEXT NOT NULL DEFAULT '',
+    dest_account TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    processed_at TEXT
+  )`).run();
+  try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wdw_addr ON wallet_withdrawals (address)`).run(); } catch (e) {}
 }
 
 function hexToBytes(hex) {
@@ -133,6 +158,49 @@ async function totpCode(secret, offset = 0) {
   const off = sig[sig.length - 1] & 0xf;
   const code = (((sig[off] & 0x7f) << 24) | (sig[off + 1] << 16) | (sig[off + 2] << 8) | sig[off + 3]) % 1000000;
   return String(code).padStart(6, '0');
+}
+
+
+// ===== PAKASIR (gateway QRIS) — sistem seperti Clincoo Pembayaran =====
+const PAKASIR_API = 'https://app.pakasir.com';
+const ZERO_ADDR = '0x' + '0'.repeat(40);
+const WD_FEE_DEFAULT = 2500;
+
+function pakasirReady(env) { return !!(env.PAKASIR_SLUG && env.PAKASIR_API_KEY); }
+
+async function pakasirFetch(env, path, init) {
+  try {
+    const r = await fetch(PAKASIR_API + path, {
+      ...init,
+      headers: { 'X-Api-Key': env.PAKASIR_API_KEY, ...((init && init.headers) || {}) }
+    });
+    const text = await r.text();
+    try { return JSON.parse(text); } catch (e) { return { error: 'invalid_response' }; }
+  } catch (e) { return { error: 'network' }; }
+}
+
+function pksStatus(st) {
+  const s = String(st || '').toLowerCase();
+  if (['success', 'paid', 'berhasil', 'complete', 'completed', 'settlement', 'lunas'].includes(s)) return 'paid';
+  if (['expired', 'expire', 'gagal', 'failed', 'cancel', 'cancelled', 'canceled', 'batal'].includes(s)) return 'expired';
+  return 'pending';
+}
+
+// Klaim order top-up atomik (anti double-credit) lalu kredit saldo + ledger
+async function claimAndCreditTopup(db, env, orderId) {
+  const order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ?').bind(orderId).first();
+  if (!order || order.status !== 'pending') return false;
+  const r = await db.prepare("UPDATE wallet_topups SET status = 'paid', paid_at = datetime('now') WHERE id = ? AND status = 'pending'").bind(orderId).run();
+  if (!r.meta || r.meta.changes === 0) return false;
+  const txid = 'TP-' + orderId;
+  const dup = await db.prepare('SELECT id FROM wallet_transactions WHERE txid = ?').bind(txid).first();
+  if (!dup) {
+    await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+      .bind(txid, ZERO_ADDR, order.address, order.amount, 'Top up QRIS').run();
+    await db.prepare('UPDATE wallet_accounts SET balance = balance + ? WHERE address = ?').bind(order.amount, order.address).run();
+    await logActivity(db, order.address, 'topup', 'Top up QRIS Rp ' + order.amount);
+  }
+  return true;
 }
 
 async function logActivity(db, address, kind, detail) {
@@ -774,6 +842,119 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, display_name: name });
     }
 
+    // ===== TOP UP QRIS (Pakasir) — sistem seperti Clincoo Pembayaran =====
+    if (action === 'topup_create') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = request.headers.get('x-wallet-secret') || body.secret || '';
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Kunci dompet tidak cocok' }, 403);
+
+      const amount = Math.floor(Number(body.amount));
+      if (!amount || amount < 10000) return j({ error: 'Nominal minimal top up Rp 10.000' }, 400);
+      if (amount > 10000000) return j({ error: 'Nominal maksimal top up Rp 10.000.000 (batas QRIS)' }, 400);
+
+      if (!pakasirReady(env)) {
+        return j({ error: 'payment_not_configured', message: 'QRIS belum aktif — hubungi admin. (PAKASIR_API_KEY / PAKASIR_SLUG belum diset)' }, 503);
+      }
+
+      const orderId = 'WT-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const txn = await pakasirFetch(env,
+        '/api/v2/create-transaction/' + encodeURIComponent(env.PAKASIR_SLUG) + '/' + encodeURIComponent(orderId),
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: 'qris', amount: amount }) });
+      if (!txn || txn.error || !txn.txn_id) {
+        return j({ error: 'gateway_error', message: (txn && (txn.message || txn.error)) || 'Gagal membuat transaksi QRIS (cek konfigurasi/saldo Pakasir).' }, 502);
+      }
+      const total = Math.floor(Number(txn.total_payment || txn.amount || amount)) || amount;
+      await db.prepare('INSERT INTO wallet_topups (id, address, amount, txn_ref, qr_string, total_payment, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(orderId, address, amount, String(txn.txn_id || ''), String(txn.qr_string || ''), total, 'pending').run();
+      await logActivity(db, address, 'topup', 'Buat order QRIS Rp ' + amount + ' (' + orderId + ')');
+      return j({
+        success: true, order_id: orderId, amount: amount, total_payment: total, fee: total - amount,
+        qr_string: txn.qr_string || '',
+        qr_image: txn.qr_string ? ('https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=' + encodeURIComponent(txn.qr_string)) : '',
+        expires_at: txn.expired_at || ''
+      });
+    }
+
+    if (action === 'topup_status') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = request.headers.get('x-wallet-secret') || body.secret || '';
+      const orderId = String(body.order_id || '').slice(0, 40);
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Kunci dompet tidak cocok' }, 403);
+
+      let order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ? AND address = ?').bind(orderId, address).first();
+      if (!order) return j({ error: 'Order top up tidak ditemukan' }, 404);
+      if (order.status === 'pending' && order.txn_ref && pakasirReady(env)) {
+        const d = await pakasirFetch(env, '/api/v2/transaction-status/' + encodeURIComponent(env.PAKASIR_SLUG) + '/' + encodeURIComponent(order.txn_ref), { method: 'GET' });
+        if (!d.error && pksStatus(d.status) === 'paid') {
+          await claimAndCreditTopup(db, env, order.id);
+          order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ?').bind(orderId).first();
+        }
+      }
+      return j({ success: true, order_id: order.id, status: order.status, amount: order.amount, total_payment: order.total_payment, balance: await getBalance(db, address) });
+    }
+
+    // ===== TARIK SALDO (sistem seperti Clincoo Pembayaran: fee flat, diproses manual) =====
+    if (action === 'wd_create') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = request.headers.get('x-wallet-secret') || body.secret || '';
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash, balance, pin_hash, pin_salt, failed_logins, locked_until FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Kunci dompet tidak cocok' }, 403);
+
+      const amount = Math.floor(Number(body.amount));
+      const fee = Number(env.WD_FEE) || WD_FEE_DEFAULT;
+      const destType = String(body.dest_type || '').toLowerCase().slice(0, 16);
+      const destAccount = String(body.dest_account || '').replace(/[\s-]/g, '');
+      const WD_DESTS = ['bank', 'dana', 'ovo', 'gopay', 'shopeepay'];
+      if (!amount || amount < 10000) return j({ error: 'Nominal minimal tarik Rp 10.000' }, 400);
+      if (WD_DESTS.indexOf(destType) === -1) return j({ error: 'Metode penarikan tidak valid' }, 400);
+      if (destType === 'bank') {
+        if (!/^[A-Za-z0-9]{5,25}$/.test(destAccount)) return j({ error: 'Nomor rekening tidak valid' }, 400);
+      } else if (!/^(?:0|62)8\d{7,12}$/.test(destAccount)) {
+        return j({ error: 'Nomor ' + destType.toUpperCase() + ' tidak valid (contoh: 08123456789)' }, 400);
+      }
+      if (acc.balance < amount + fee) return j({ error: 'Saldo tidak cukup. Saldo Anda Rp ' + acc.balance + ' (butuh nominal + fee Rp ' + (amount + fee) + ')' }, 402);
+
+      // PIN wajib — pola kunci sama seperti transfer/kirim (5x gagal → terkunci 15 menit)
+      const txPin = String(body.pin || '');
+      if (!acc.pin_hash || !acc.pin_salt) return j({ error: 'Akun belum punya PIN — atur PIN dulu di Profil → Keamanan.' }, 400);
+      if (acc.locked_until && new Date(acc.locked_until) > new Date()) return j({ error: 'Akun terkunci sementara karena gagal PIN berulang' }, 423);
+      if ((await hashPin(txPin, acc.pin_salt)) !== acc.pin_hash) {
+        const fails = (acc.failed_logins || 0) + 1;
+        await db.prepare('UPDATE wallet_accounts SET failed_logins = ?, locked_until = ? WHERE address = ?')
+          .bind(fails, fails >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null, address).run();
+        return j({ error: 'PIN salah. Sisa percobaan: ' + (5 - fails) }, 401);
+      }
+      await db.prepare('UPDATE wallet_accounts SET failed_logins = 0, locked_until = NULL WHERE address = ?').bind(address).run();
+
+      const wdId = 'WD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      await db.prepare('INSERT INTO wallet_withdrawals (id, address, amount, fee, dest_type, dest_account, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(wdId, address, amount, fee, destType, destAccount, 'pending').run();
+      await db.prepare('UPDATE wallet_accounts SET balance = balance - ? WHERE address = ?').bind(amount + fee, address).run();
+      await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+        .bind('WDT-' + wdId, address, ZERO_ADDR, amount + fee, 'Tarik saldo → ' + destType.toUpperCase() + ' ' + destAccount.slice(0, 4) + '\u2026').run();
+      await logActivity(db, address, 'tarik', 'Tarik Rp ' + amount + ' ke ' + destType.toUpperCase() + ' (+fee ' + fee + ')');
+      return j({ success: true, withdrawal_id: wdId, amount: amount, fee: fee, debited: amount + fee, balance: await getBalance(db, address) });
+    }
+
+    if (action === 'wd_list') {
+      const address = String(body.address || '').toLowerCase();
+      const secret = request.headers.get('x-wallet-secret') || body.secret || '';
+      if (!ADDR_RE.test(address)) return j({ error: 'Alamat tidak valid' }, 400);
+      const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
+      if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
+      if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Kunci dompet tidak cocok' }, 403);
+      const rows = await db.prepare('SELECT id, amount, fee, dest_type, dest_account, status, created_at FROM wallet_withdrawals WHERE address = ? ORDER BY created_at DESC, id DESC LIMIT 20').bind(address).all();
+      return j({ success: true, withdrawals: rows.results || [] });
+    }
+
     // ===== SISTEM ADMIN/OWNER (backend-only, digerbangi x-admin-secret dari env) =====
     const adminSecret = request.headers.get('x-admin-secret') || '';
     if (!env.ADMIN_SECRET || adminSecret !== env.ADMIN_SECRET) return j({ error: 'Akses admin ditolak' }, 403);
@@ -818,6 +999,30 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, granted: amount, to: to });
     }
 
+
+    if (action === 'admin_wd') {
+      const status = ['pending', 'paid', 'rejected'].indexOf(String(body.status || 'pending')) >= 0 ? String(body.status) : 'pending';
+      const rows = await db.prepare('SELECT * FROM wallet_withdrawals WHERE status = ? ORDER BY created_at DESC, id DESC LIMIT 50').bind(status).all();
+      return j({ success: true, withdrawals: rows.results || [] });
+    }
+
+    if (action === 'admin_wd_update') {
+      const wdId = String(body.id || '').slice(0, 40);
+      const st = String(body.status || '');
+      if (st !== 'paid' && st !== 'rejected') return j({ error: 'Status harus paid atau rejected' }, 400);
+      const w = await db.prepare('SELECT * FROM wallet_withdrawals WHERE id = ?').bind(wdId).first();
+      if (!w) return j({ error: 'Penarikan tidak ditemukan' }, 404);
+      if (w.status !== 'pending') return j({ success: true, status: w.status, note: 'sudah diproses' });
+      await db.prepare('UPDATE wallet_withdrawals SET status = ?, processed_at = datetime(\'now\') WHERE id = ?').bind(st, wdId).run();
+      if (st === 'rejected') {
+        // tolak → saldo dikembalikan penuh (nominal + fee) + tercatat di ledger
+        await db.prepare('UPDATE wallet_accounts SET balance = balance + ? WHERE address = ?').bind(w.amount + w.fee, w.address).run();
+        await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+          .bind('WDR-' + wdId, ZERO_ADDR, w.address, w.amount + w.fee, 'Pengembalian penarikan ditolak (' + w.id + ')').run();
+      }
+      return j({ success: true, id: wdId, status: st });
+    }
+
     return j({ error: 'unknown action' }, 400);
   } catch (err) {
     return j({ error: err.message }, 500);
@@ -828,3 +1033,5 @@ async function getBalance(db, address) {
   const r = await db.prepare('SELECT balance FROM wallet_accounts WHERE address = ?').bind(address).first();
   return r ? r.balance : 0;
 }
+
+export { pakasirReady, pakasirFetch, pksStatus, claimAndCreditTopup };

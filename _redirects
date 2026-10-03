@@ -1,5 +1,9 @@
 /dompet / 200
 /scan / 200
+/topup / 200
+/topup/ / 200
+/tarik / 200
+/tarik/ / 200
 /riwayat / 200
 /transaksi / 200
 /transaksi/* / 200

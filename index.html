@@ -623,6 +623,25 @@
         }
 
         .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+        /* ===== CTA Top Up & Tarik (beranda dompet) ===== */
+        .quick-actions { display: flex; gap: 12px; margin: 20px 0 4px; max-width: 430px; margin-left: auto; margin-right: auto; width: 100%; }
+        .quick-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--accent-blue); color: #ffffff; border: none; outline: none; border-radius: 9999px; padding: 14px 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25); transition: transform 0.1s ease, opacity 0.2s ease; -webkit-tap-highlight-color: transparent; }
+        .quick-btn:active { transform: scale(0.98); }
+        .quick-btn.secondary { background-color: #f1f5f9; color: #0f172a; box-shadow: none; }
+        .flow-container { max-width: 430px; margin: 0 auto; padding: 8px 20px 40px; width: 100%; box-sizing: border-box; }
+        .flow-container .form-input, .flow-container select.form-input { width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+        .flow-error { color: #dc2626; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
+        .topup-qr-box { background: #ffffff; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06); }
+        .topup-total-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #475569; margin-top: 12px; }
+        .topup-total-row strong { color: #0f172a; }
+        .topup-status { text-align: center; font-size: 0.85rem; color: #64748b; margin-top: 12px; }
+        .topup-status.ok { color: #16a34a; font-weight: 600; }
+        .wd-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 2px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        .wd-item .wd-meta { color: #64748b; font-size: 0.75rem; margin-top: 2px; }
+        .wd-badge { padding: 3px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600; background: #fef9c3; color: #854d0e; }
+        .wd-badge.paid { background: #dcfce7; color: #166534; }
+        .wd-badge.rejected { background: #fee2e2; color: #991b1b; }
         .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: fa2spin .7s linear infinite; margin-right: 8px; vertical-align: -3px; }
         .btn-submit:active {
             transform: scale(0.98);
@@ -923,6 +942,24 @@
             </div>
         </div>
 
+        <div class="quick-actions">
+            <button class="quick-btn" onclick="openTopup()" aria-label="Top Up Saldo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Top Up
+            </button>
+            <button class="quick-btn secondary" onclick="openTarik()" aria-label="Tarik Saldo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                    <polyline points="21 3 21 9 15 9"></polyline>
+                </svg>
+                Tarik
+            </button>
+        </div>
+
         <div class="history-section">
             <div class="history-header">
                 <span class="history-title">Riwayat Transaksi</span>
@@ -1056,6 +1093,100 @@
         </div>
     </div>
 
+    <div id="page-topup" class="page" style="background-color: #ffffff; min-height: 100vh;">
+        <div class="scanner-header" style="position: sticky; top: 0; background: #fff; z-index: 20;">
+            <button class="back-btn" onclick="closeTopup()" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+            <span class="scanner-title">Top Up Saldo</span>
+        </div>
+
+        <div class="flow-container" id="topup-form">
+            <div class="form-group">
+                <label class="form-label">Nominal Top Up</label>
+                <div class="form-input-wrapper">
+                    <input type="number" id="topup-amount" class="form-input amount-input" placeholder="0" min="10000">
+                </div>
+                <div class="balance-hint">Minimal Rp 10.000 — maksimal Rp 10.000.000</div>
+            </div>
+
+            <div class="wallet-warning-note">
+                Biaya QRIS ditanggung pembeli dan ditambahkan otomatis ke tagihan. Saldo yang masuk ke dompetmu senilai penuh nominal top up.
+            </div>
+
+            <button class="btn-submit" onclick="startTopup()">Buat Kode QR</button>
+            <div id="topup-error" class="flow-error"></div>
+        </div>
+
+        <div class="flow-container" id="topup-result" style="display: none;">
+            <div class="topup-qr-box">
+                <div id="topup-qrcode" class="square-qr-svg" style="display: flex; justify-content: center;"></div>
+                <div class="topup-total-row"><span>Nominal top up</span><strong id="topup-rp-amount"></strong></div>
+                <div class="topup-total-row"><span>Total tagihan <span style="color:#64748b">(termasuk biaya)</span></span><strong id="topup-rp-total"></strong></div>
+                <div class="topup-status" id="topup-status-text">Menunggu pembayaran…</div>
+            </div>
+            <button class="btn-submit" onclick="checkTopupStatus(true)" style="margin-top: 16px;">Sudah Bayar? Cek Status</button>
+            <button class="btn-submit" onclick="closeTopup()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Tutup</button>
+        </div>
+    </div>
+
+    <div id="page-tarik" class="page" style="background-color: #ffffff; min-height: 100vh;">
+        <div class="scanner-header" style="position: sticky; top: 0; background: #fff; z-index: 20;">
+            <button class="back-btn" onclick="closeTarik()" aria-label="Kembali">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+            <span class="scanner-title">Tarik Saldo</span>
+        </div>
+
+        <div class="flow-container">
+            <div class="form-group">
+                <label class="form-label">Nominal Penarikan</label>
+                <div class="form-input-wrapper">
+                    <input type="number" id="wd-amount" class="form-input amount-input" placeholder="0" min="10000">
+                </div>
+                <div class="balance-hint">Tersedia: <span id="wd-available-hint">Rp 0</span> — minimal Rp 10.000</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Metode</label>
+                <div class="form-input-wrapper">
+                    <select id="wd-dest-type" class="form-input">
+                        <option value="bank">Transfer Bank</option>
+                        <option value="dana">DANA</option>
+                        <option value="ovo">OVO</option>
+                        <option value="gopay">GoPay</option>
+                        <option value="shopeepay">ShopeePay</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" id="wd-dest-label">Nomor Rekening</label>
+                <div class="form-input-wrapper">
+                    <input type="text" id="wd-dest-account" class="form-input" placeholder="Nomor rekening" inputmode="numeric">
+                </div>
+            </div>
+
+            <div class="wallet-warning-note">
+                Biaya penarikan Rp 2.500 flat per transaksi. Dana diproses ke tujuan dalam 1×24 jam setelah permintaan diajukan. Pastikan nomor tujuan benar — pengiriman ke tujuan salah tidak dapat dibatalkan.
+            </div>
+
+            <button class="btn-submit" onclick="submitTarik()">Ajukan Penarikan</button>
+            <div id="wd-error" class="flow-error"></div>
+
+            <div id="wd-list-section" style="margin-top: 24px;">
+                <div class="history-header"><span class="history-title" style="font-size: 0.9rem;">Riwayat Tarik</span></div>
+                <div id="wd-list"></div>
+            </div>
+        </div>
+    </div>
+
     <nav class="bottom-nav">
         <button class="nav-btn active" onclick="switchPage('dompet', this)" aria-label="Dompet">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1167,6 +1298,9 @@
                 addressEl.textContent = walletAddress;
             }
             
+            const wdTypeSel = document.getElementById('wd-dest-type');
+            if (wdTypeSel) { wdTypeSel.addEventListener('change', updateWdDestLabel); updateWdDestLabel(); }
+
             const qrContainer = document.getElementById('wallet-qrcode');
             if (qrContainer && typeof QRCode !== 'undefined') {
                 try {
@@ -1385,6 +1519,191 @@
             });
         }
 
+
+        // ===== TOP UP QRIS (Pakasir) & TARIK SALDO =====
+        let topupPollTimer = null;
+        let currentTopupOrderId = null;
+
+        function openTopup() {
+            switchPage('topup');
+            const formEl = document.getElementById('topup-form');
+            const resEl = document.getElementById('topup-result');
+            const errEl = document.getElementById('topup-error');
+            if (formEl) formEl.style.display = '';
+            if (resEl) resEl.style.display = 'none';
+            if (errEl) errEl.textContent = '';
+        }
+
+        function closeTopup() {
+            stopTopupPoll();
+            switchPage(previousPage || 'dompet');
+        }
+
+        function stopTopupPoll() {
+            if (topupPollTimer) { clearInterval(topupPollTimer); topupPollTimer = null; }
+        }
+
+        async function startTopup() {
+            const amountEl = document.getElementById('topup-amount');
+            const errEl = document.getElementById('topup-error');
+            const btn = document.querySelector('#page-topup .btn-submit');
+            if (!amountEl || !btn) return;
+            const amountVal = parseInt(amountEl.value, 10);
+            if (errEl) errEl.textContent = '';
+            if (isNaN(amountVal) || amountVal < 10000) { if (errEl) errEl.textContent = 'Nominal minimal top up Rp 10.000.'; return; }
+            if (amountVal > 10000000) { if (errEl) errEl.textContent = 'Nominal maksimal top up Rp 10.000.000.'; return; }
+
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Membuat QR…';
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                    body: JSON.stringify({ action: 'topup_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal })
+                }).then(r => r.json());
+
+                if (res.success) {
+                    currentTopupOrderId = res.order_id;
+                    document.getElementById('topup-form').style.display = 'none';
+                    document.getElementById('topup-result').style.display = '';
+                    document.getElementById('topup-rp-amount').textContent = 'Rp ' + formatRupiah(res.amount);
+                    document.getElementById('topup-rp-total').textContent = 'Rp ' + formatRupiah(res.total_payment);
+                    const statusEl = document.getElementById('topup-status-text');
+                    if (statusEl) { statusEl.textContent = 'Menunggu pembayaran…'; statusEl.classList.remove('ok'); }
+
+                    const qrEl = document.getElementById('topup-qrcode');
+                    if (qrEl && typeof QRCode !== 'undefined' && res.qr_string) {
+                        qrEl.innerHTML = '';
+                        try {
+                            new QRCode(qrEl, { text: res.qr_string, width: 512, height: 512, colorDark: '#0f172a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+                        } catch (e) {}
+                    }
+
+                    stopTopupPoll();
+                    topupPollTimer = setInterval(function () { checkTopupStatus(false); }, 3500);
+                } else {
+                    if (errEl) errEl.textContent = res.message || res.error || 'Gagal membuat QRIS.';
+                }
+            } catch (e) {
+                if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
+            } finally {
+                btn.disabled = false; btn.innerHTML = 'Buat Kode QR';
+            }
+        }
+
+        async function checkTopupStatus(manual) {
+            if (!currentTopupOrderId) return;
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                    body: JSON.stringify({ action: 'topup_status', address: walletAddress, order_id: currentTopupOrderId })
+                }).then(r => r.json());
+
+                if (res.success && res.status === 'paid') {
+                    stopTopupPoll();
+                    const statusEl = document.getElementById('topup-status-text');
+                    if (statusEl) { statusEl.textContent = 'Top up berhasil! Saldo sudah masuk.'; statusEl.classList.add('ok'); }
+                    currentBalance = res.balance || currentBalance;
+                    await loadWalletState();
+                } else if (res.success && res.status === 'expired') {
+                    stopTopupPoll();
+                    const statusEl = document.getElementById('topup-status-text');
+                    if (statusEl) statusEl.textContent = 'QR kedaluwarsa — tutup lalu buat ulang.';
+                } else if (manual && res.success) {
+                    const statusEl = document.getElementById('topup-status-text');
+                    if (statusEl && res.status === 'pending') statusEl.textContent = 'Belum terdeteksi — coba lagi sebentar.';
+                }
+            } catch (e) {}
+        }
+
+        function openTarik() {
+            switchPage('tarik');
+            const hintEl = document.getElementById('wd-available-hint');
+            if (hintEl) hintEl.textContent = 'Rp ' + formatRupiah(currentBalance);
+            const errEl = document.getElementById('wd-error');
+            if (errEl) errEl.textContent = '';
+            loadWdList();
+        }
+
+        function closeTarik() {
+            switchPage(previousPage || 'dompet');
+        }
+
+        function updateWdDestLabel() {
+            const sel = document.getElementById('wd-dest-type');
+            const lbl = document.getElementById('wd-dest-label');
+            const acc = document.getElementById('wd-dest-account');
+            if (!sel || !lbl || !acc) return;
+            if (sel.value === 'bank') {
+                lbl.textContent = 'Nomor Rekening';
+                acc.placeholder = 'Nomor rekening';
+            } else {
+                lbl.textContent = 'Nomor ' + sel.value.toUpperCase();
+                acc.placeholder = 'Contoh: 08123456789';
+            }
+        }
+
+        async function submitTarik() {
+            const amountEl = document.getElementById('wd-amount');
+            const typeEl = document.getElementById('wd-dest-type');
+            const accEl = document.getElementById('wd-dest-account');
+            const errEl = document.getElementById('wd-error');
+            const btn = document.querySelector('#page-tarik .btn-submit');
+            if (!amountEl || !btn) return;
+            const amountVal = parseInt(amountEl.value, 10);
+            if (errEl) errEl.textContent = '';
+            if (isNaN(amountVal) || amountVal < 10000) { if (errEl) errEl.textContent = 'Nominal minimal tarik Rp 10.000.'; return; }
+            if (amountVal + 2500 > currentBalance) { if (errEl) errEl.textContent = 'Saldo tidak cukup (butuh nominal + fee Rp 2.500).'; return; }
+
+            askTxPin(async function (pin) {
+                btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Mengajukan…';
+                try {
+                    const res = await fetch(API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                        body: JSON.stringify({ action: 'wd_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal, dest_type: typeEl.value, dest_account: accEl.value.trim(), pin: pin })
+                    }).then(r => r.json());
+
+                    if (res.success) {
+                        currentBalance = res.balance || currentBalance;
+                        const hintEl = document.getElementById('wd-available-hint');
+                        if (hintEl) hintEl.textContent = 'Rp ' + formatRupiah(currentBalance);
+                        amountEl.value = ''; accEl.value = '';
+                        if (errEl) { errEl.textContent = 'Penarikan ' + res.withdrawal_id + ' diajukan — diproses ke tujuan dalam 1\u00d724 jam.'; errEl.style.color = '#16a34a'; setTimeout(function () { errEl.style.color = ''; }, 6000); }
+                        await loadWalletState();
+                        await loadWdList();
+                    } else {
+                        if (errEl) errEl.textContent = res.error || 'Pengajuan gagal.';
+                    }
+                } catch (e) {
+                    if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
+                } finally {
+                    btn.disabled = false; btn.innerHTML = 'Ajukan Penarikan';
+                }
+            });
+        }
+
+        async function loadWdList() {
+            const listEl = document.getElementById('wd-list');
+            if (!listEl) return;
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                    body: JSON.stringify({ action: 'wd_list', address: walletAddress })
+                }).then(r => r.json());
+                if (!res.success || !res.withdrawals || !res.withdrawals.length) {
+                    listEl.innerHTML = '<div class="wd-meta" style="padding:10px 2px;">Belum ada riwayat penarikan.</div>';
+                    return;
+                }
+                listEl.innerHTML = res.withdrawals.map(function (w) {
+                    const badge = w.status === 'paid' ? '<span class="wd-badge paid">Selesai</span>' : (w.status === 'rejected' ? '<span class="wd-badge rejected">Ditolak — dana kembali</span>' : '<span class="wd-badge">Diproses</span>');
+                    return '<div class="wd-item"><div><strong>Rp ' + formatRupiah(w.amount) + '</strong>'
+                        + '<div class="wd-meta">' + String(w.dest_type).toUpperCase() + ' \u2022 ' + String(w.dest_account).slice(0, 6) + '\u2026 \u2022 ' + (w.created_at || '') + '</div></div>' + badge + '</div>';
+                }).join('');
+            } catch (e) {}
+        }
+
         let scanActive = false;
         const scanCanvas = document.createElement('canvas');
 
@@ -1537,7 +1856,8 @@
         }
 
         function switchPage(pageName, btnElement, updateState = true) {
-            if (pageName !== 'scan' && pageName !== 'riwayat') {
+            if (typeof stopTopupPoll === 'function' && pageName !== 'topup') stopTopupPoll();
+            if (pageName !== 'scan' && pageName !== 'riwayat' && pageName !== 'topup' && pageName !== 'tarik') {
                 previousPage = pageName;
             }
 
@@ -1552,7 +1872,7 @@
             const targetPage = document.getElementById('page-' + pageName);
             if (targetPage) targetPage.classList.add('active');
 
-            if (pageName === 'scan' || pageName === 'riwayat') {
+            if (pageName === 'scan' || pageName === 'riwayat' || pageName === 'topup' || pageName === 'tarik') {
                 document.querySelector('.bottom-nav').style.display = 'none';
             } else {
                 document.querySelector('.bottom-nav').style.display = 'flex';
@@ -1604,7 +1924,7 @@
                 sub = e.state.subPageName || 'kirim';
             } else {
                 const pathParts = window.location.pathname.split('/').filter(p => p);
-                const validPages = ['dompet', 'transaksi', 'scan', 'riwayat'];
+                const validPages = ['dompet', 'transaksi', 'scan', 'riwayat', 'topup', 'tarik'];
                 
                 for (let i = 0; i < pathParts.length; i++) {
                     if (validPages.includes(pathParts[i])) {
