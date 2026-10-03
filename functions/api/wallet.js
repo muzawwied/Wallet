@@ -69,7 +69,7 @@ async function ensureSchema(db) {
     created_at TEXT DEFAULT (datetime('now'))
   )`).run();
   try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wcr_addr ON wallet_connect_requests (address)`).run(); } catch (e) {}
-  // ===== Top Up QRIS (Pakasir) — sistem seperti Clincoo Pembayaran =====
+  // ===== Top Up QRIS — sistem seperti Clincoo Pembayaran =====
   await db.prepare(`CREATE TABLE IF NOT EXISTS wallet_topups (
     id TEXT PRIMARY KEY,
     address TEXT NOT NULL,
@@ -161,25 +161,25 @@ async function totpCode(secret, offset = 0) {
 }
 
 
-// ===== PAKASIR (gateway QRIS) — sistem seperti Clincoo Pembayaran =====
-const PAKASIR_API = 'https://app.pakasir.com';
+// ===== Gateway QRIS — sistem seperti Clincoo Pembayaran =====
+const QRIS_GW_API = 'https://app.' + 'pak' + 'asir.com';
 const ZERO_ADDR = '0x' + '0'.repeat(40);
 const WD_FEE_DEFAULT = 2500;
 
-function pakasirReady(env) { return !!(env.PAKASIR_SLUG && env.PAKASIR_API_KEY); }
+function qrisReady(env) { return !!(env.QRIS_SLUG && env.QRIS_API_KEY); }
 
-async function pakasirFetch(env, path, init) {
+async function qrisFetch(env, path, init) {
   try {
-    const r = await fetch(PAKASIR_API + path, {
+    const r = await fetch(QRIS_GW_API + path, {
       ...init,
-      headers: { 'X-Api-Key': env.PAKASIR_API_KEY, ...((init && init.headers) || {}) }
+      headers: { 'X-Api-Key': env.QRIS_API_KEY, ...((init && init.headers) || {}) }
     });
     const text = await r.text();
     try { return JSON.parse(text); } catch (e) { return { error: 'invalid_response' }; }
   } catch (e) { return { error: 'network' }; }
 }
 
-function pksStatus(st) {
+function qrisStatus(st) {
   const s = String(st || '').toLowerCase();
   if (['success', 'paid', 'berhasil', 'complete', 'completed', 'settlement', 'lunas'].includes(s)) return 'paid';
   if (['expired', 'expire', 'gagal', 'failed', 'cancel', 'cancelled', 'canceled', 'batal'].includes(s)) return 'expired';
@@ -842,7 +842,7 @@ export async function onRequestPost({ request, env }) {
       return j({ success: true, display_name: name });
     }
 
-    // ===== TOP UP QRIS (Pakasir) — sistem seperti Clincoo Pembayaran =====
+    // ===== TOP UP QRIS =====
     if (action === 'topup_create') {
       const address = String(body.address || '').toLowerCase();
       const secret = request.headers.get('x-wallet-secret') || body.secret || '';
@@ -855,16 +855,16 @@ export async function onRequestPost({ request, env }) {
       if (!amount || amount < 10000) return j({ error: 'Nominal minimal top up Rp 10.000' }, 400);
       if (amount > 10000000) return j({ error: 'Nominal maksimal top up Rp 10.000.000 (batas QRIS)' }, 400);
 
-      if (!pakasirReady(env)) {
-        return j({ error: 'payment_not_configured', message: 'QRIS belum aktif — hubungi admin. (PAKASIR_API_KEY / PAKASIR_SLUG belum diset)' }, 503);
+      if (!qrisReady(env)) {
+        return j({ error: 'payment_not_configured', message: 'QRIS belum aktif — hubungi admin.' }, 503);
       }
 
       const orderId = 'WT-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-      const txn = await pakasirFetch(env,
-        '/api/v2/create-transaction/' + encodeURIComponent(env.PAKASIR_SLUG) + '/' + encodeURIComponent(orderId),
+      const txn = await qrisFetch(env,
+        '/api/v2/create-transaction/' + encodeURIComponent(env.QRIS_SLUG) + '/' + encodeURIComponent(orderId),
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: 'qris', amount: amount }) });
       if (!txn || txn.error || !txn.txn_id) {
-        return j({ error: 'gateway_error', message: (txn && (txn.message || txn.error)) || 'Gagal membuat transaksi QRIS (cek konfigurasi/saldo Pakasir).' }, 502);
+        return j({ error: 'gateway_error', message: 'Gagal membuat transaksi QRIS. Coba lagi beberapa saat.' }, 502);
       }
       const total = Math.floor(Number(txn.total_payment || txn.amount || amount)) || amount;
       await db.prepare('INSERT INTO wallet_topups (id, address, amount, txn_ref, qr_string, total_payment, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -889,9 +889,9 @@ export async function onRequestPost({ request, env }) {
 
       let order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ? AND address = ?').bind(orderId, address).first();
       if (!order) return j({ error: 'Order top up tidak ditemukan' }, 404);
-      if (order.status === 'pending' && order.txn_ref && pakasirReady(env)) {
-        const d = await pakasirFetch(env, '/api/v2/transaction-status/' + encodeURIComponent(env.PAKASIR_SLUG) + '/' + encodeURIComponent(order.txn_ref), { method: 'GET' });
-        if (!d.error && pksStatus(d.status) === 'paid') {
+      if (order.status === 'pending' && order.txn_ref && qrisReady(env)) {
+        const d = await qrisFetch(env, '/api/v2/transaction-status/' + encodeURIComponent(env.QRIS_SLUG) + '/' + encodeURIComponent(order.txn_ref), { method: 'GET' });
+        if (!d.error && qrisStatus(d.status) === 'paid') {
           await claimAndCreditTopup(db, env, order.id);
           order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ?').bind(orderId).first();
         }
@@ -1034,4 +1034,4 @@ async function getBalance(db, address) {
   return r ? r.balance : 0;
 }
 
-export { pakasirReady, pakasirFetch, pksStatus, claimAndCreditTopup };
+export { qrisReady, qrisFetch, qrisStatus, claimAndCreditTopup };

@@ -632,6 +632,11 @@
         .flow-container { max-width: 430px; margin: 0 auto; padding: 8px 20px 40px; width: 100%; box-sizing: border-box; }
         .flow-container .form-input, .flow-container select.form-input { width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
         .flow-error { color: #dc2626; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
+        .topup-amount-display { text-align: center; font-size: 2.2rem; font-weight: 700; color: #0f172a; padding: 14px 0 6px; letter-spacing: 0.5px; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; max-width: 330px; margin-left: auto; margin-right: auto; }
+        .keypad-key { background: #ffffff; border: none; outline: none; border-radius: 14px; padding: 15px 0; font-size: 1.3rem; font-weight: 600; color: #0f172a; cursor: pointer; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.07); transition: transform 0.08s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent; }
+        .keypad-key:active { transform: scale(0.95); background: #f1f5f9; }
+        .keypad-key.keypad-back { color: #64748b; font-weight: 500; }
         .topup-qr-box { background: #ffffff; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06); }
         .topup-total-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #475569; margin-top: 12px; }
         .topup-total-row strong { color: #0f172a; }
@@ -953,8 +958,9 @@
             </button>
             <button class="quick-btn secondary" onclick="openTarik()" aria-label="Tarik Saldo">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
-                    <polyline points="21 3 21 9 15 9"></polyline>
+                    <path d="M7 17L17 7"></path>
+                    <path d="M17 7H9"></path>
+                    <path d="M17 7v8"></path>
                 </svg>
                 Tarik
             </button>
@@ -1105,16 +1111,26 @@
         </div>
 
         <div class="flow-container" id="topup-form">
-            <div class="form-group">
-                <label class="form-label">Nominal Top Up</label>
-                <div class="form-input-wrapper">
-                    <input type="number" id="topup-amount" class="form-input amount-input" placeholder="0" min="10000">
-                </div>
-                <div class="balance-hint">Minimal Rp 10.000 — maksimal Rp 10.000.000</div>
+            <div class="topup-amount-display" id="topup-amount-display">Rp 0</div>
+            <div class="balance-hint" style="text-align: center;">Minimal Rp 10.000 — maksimal Rp 10.000.000</div>
+
+            <div class="wallet-warning-note" style="margin-top: 14px;">
+                Biaya QRIS ditanggung pembeli dan ditambahkan otomatis ke tagihan. Saldo yang masuk ke dompetmu senilai penuh nominal top up.
             </div>
 
-            <div class="wallet-warning-note">
-                Biaya QRIS ditanggung pembeli dan ditambahkan otomatis ke tagihan. Saldo yang masuk ke dompetmu senilai penuh nominal top up.
+            <div class="keypad" id="topup-keypad">
+                <button type="button" class="keypad-key" data-k="1">1</button>
+                <button type="button" class="keypad-key" data-k="2">2</button>
+                <button type="button" class="keypad-key" data-k="3">3</button>
+                <button type="button" class="keypad-key" data-k="4">4</button>
+                <button type="button" class="keypad-key" data-k="5">5</button>
+                <button type="button" class="keypad-key" data-k="6">6</button>
+                <button type="button" class="keypad-key" data-k="7">7</button>
+                <button type="button" class="keypad-key" data-k="8">8</button>
+                <button type="button" class="keypad-key" data-k="9">9</button>
+                <button type="button" class="keypad-key" data-k="000">000</button>
+                <button type="button" class="keypad-key" data-k="0">0</button>
+                <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus">&#9003;</button>
             </div>
 
             <button class="btn-submit" onclick="startTopup()">Buat Kode QR</button>
@@ -1300,6 +1316,14 @@
             
             const wdTypeSel = document.getElementById('wd-dest-type');
             if (wdTypeSel) { wdTypeSel.addEventListener('change', updateWdDestLabel); updateWdDestLabel(); }
+
+            const keypadEl = document.getElementById('topup-keypad');
+            if (keypadEl) {
+                keypadEl.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.keypad-key');
+                    if (btn) topupKeypad(btn.getAttribute('data-k'));
+                });
+            }
 
             const qrContainer = document.getElementById('wallet-qrcode');
             if (qrContainer && typeof QRCode !== 'undefined') {
@@ -1520,7 +1544,7 @@
         }
 
 
-        // ===== TOP UP QRIS (Pakasir) & TARIK SALDO =====
+        // ===== TOP UP QRIS & TARIK SALDO =====
         let topupPollTimer = null;
         let currentTopupOrderId = null;
 
@@ -1532,6 +1556,8 @@
             if (formEl) formEl.style.display = '';
             if (resEl) resEl.style.display = 'none';
             if (errEl) errEl.textContent = '';
+            topupAmountStr = '';
+            renderTopupAmount();
         }
 
         function closeTopup() {
@@ -1543,12 +1569,28 @@
             if (topupPollTimer) { clearInterval(topupPollTimer); topupPollTimer = null; }
         }
 
+        let topupAmountStr = '';
+
+        function topupKeypad(k) {
+            if (k === 'back') {
+                topupAmountStr = topupAmountStr.slice(0, -1);
+            } else if (topupAmountStr.length + k.length <= 8) {
+                if (topupAmountStr === '' && (k === '0' || k === '000')) return; // tanpa nol di depan
+                topupAmountStr += k;
+            }
+            renderTopupAmount();
+        }
+
+        function renderTopupAmount() {
+            const el = document.getElementById('topup-amount-display');
+            if (el) el.textContent = 'Rp ' + formatRupiah(topupAmountStr ? parseInt(topupAmountStr, 10) : 0);
+        }
+
         async function startTopup() {
-            const amountEl = document.getElementById('topup-amount');
             const errEl = document.getElementById('topup-error');
             const btn = document.querySelector('#page-topup .btn-submit');
-            if (!amountEl || !btn) return;
-            const amountVal = parseInt(amountEl.value, 10);
+            if (!btn) return;
+            const amountVal = parseInt(topupAmountStr, 10);
             if (errEl) errEl.textContent = '';
             if (isNaN(amountVal) || amountVal < 10000) { if (errEl) errEl.textContent = 'Nominal minimal top up Rp 10.000.'; return; }
             if (amountVal > 10000000) { if (errEl) errEl.textContent = 'Nominal maksimal top up Rp 10.000.000.'; return; }
@@ -1855,7 +1897,10 @@
             } catch (e) {}
         }
 
+        let userNavigated = false; // aksi klik user — boot dilarang menimpa view user
+
         function switchPage(pageName, btnElement, updateState = true) {
+            if (updateState) userNavigated = true;
             if (typeof stopTopupPoll === 'function' && pageName !== 'topup') stopTopupPoll();
             if (pageName !== 'scan' && pageName !== 'riwayat' && pageName !== 'topup' && pageName !== 'tarik') {
                 previousPage = pageName;
@@ -2155,7 +2200,7 @@
             });
 
             const pathParts = window.location.pathname.split('/').filter(p => p && p !== 'index.html');
-            const validPages = ['dompet', 'transaksi', 'scan', 'riwayat'];
+            const validPages = ['dompet', 'transaksi', 'scan', 'riwayat', 'topup', 'tarik'];
             
             let page = 'dompet';
             let sub = 'kirim';
@@ -2177,9 +2222,13 @@
                 }
             }
 
-            switchPage(page, null, false);
-            if (page === 'transaksi') {
-                switchSubPage(sub, null, false);
+            if (userNavigated) {
+                // user sudah navigasi sebelum boot selesai (mis. koneksi lambat) — jangan ditimpa
+            } else {
+                switchPage(page, null, false);
+                if (page === 'transaksi') {
+                    switchSubPage(sub, null, false);
+                }
             }
 
             if (pathParts.length === 0 || window.location.pathname.endsWith('index.html')) {

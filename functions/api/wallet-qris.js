@@ -1,8 +1,8 @@
-// Webhook Pakasir — top up QRIS Wallet (POST /api/wallet-pakasir)
-// Pasang URL ini di dashboard Pakasir (Project → Webhook URL):
-//   https://wallet.clincoo.buzz/api/wallet-pakasir
-// Secret: isi "Webhook Secret" di Pakasir = nilai PAKASIR_WEBHOOK_SECRET (Pages secret).
-import { pakasirReady, pakasirFetch, pksStatus, claimAndCreditTopup } from './wallet.js';
+// Webhook gateway QRIS — top up wallet (POST /api/wallet-qris)
+// Pasang URL ini di dashboard payment gateway (Webhook URL):
+//   https://wallet.clincoo.buzz/api/wallet-qris
+// Secret: isi "Webhook Secret" di dashboard = nilai QRIS_WEBHOOK_SECRET (Pages secret).
+import { qrisReady, qrisFetch, qrisStatus, claimAndCreditTopup } from './wallet.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,12 +22,12 @@ export async function onRequestPost({ request, env }) {
     let body = {};
     try { body = await request.json(); } catch (e) { return j({ error: 'body JSON tidak valid' }, 400); }
 
-    // secret webhook opsional: kalau PAKASIR_WEBHOOK_SECRET diset, header X-Secret wajib cocok
-    if (env.PAKASIR_WEBHOOK_SECRET) {
+    // secret webhook: kalau QRIS_WEBHOOK_SECRET diset, header X-Secret wajib cocok
+    if (env.QRIS_WEBHOOK_SECRET) {
       const sig = request.headers.get('x-secret') || '';
-      if (sig !== env.PAKASIR_WEBHOOK_SECRET) return j({ error: 'unauthorized' }, 401);
+      if (sig !== env.QRIS_WEBHOOK_SECRET) return j({ error: 'unauthorized' }, 401);
     }
-    if (!pakasirReady(env)) return j({ error: 'gateway tidak aktif' }, 503);
+    if (!qrisReady(env)) return j({ error: 'gateway tidak aktif' }, 503);
 
     const txnId = String(body.txn_id || '').trim();
     const orderId = String(body.order_id || '').trim();
@@ -38,12 +38,12 @@ export async function onRequestPost({ request, env }) {
     if (!order && orderId) order = await db.prepare('SELECT * FROM wallet_topups WHERE id = ?').bind(orderId).first();
     if (!order) return j({ received: true, matched: false });
 
-    // KEAMANAN: jangan percaya body webhook mentah — verifikasi ulang ke Pakasir
+    // KEAMANAN: jangan percaya body webhook mentah — verifikasi ulang ke provider
     // dengan API key sebelum kredisi saldo (kredisi tanpa konfirmasi provider DITOLAK)
-    const completed = String(body.status || '').toLowerCase() === 'completed' || pksStatus(body.status) === 'paid';
+    const completed = String(body.status || '').toLowerCase() === 'completed' || qrisStatus(body.status) === 'paid';
     if (completed && order.status === 'pending' && order.txn_ref) {
-      const d = await pakasirFetch(env, '/api/v2/transaction-status/' + encodeURIComponent(env.PAKASIR_SLUG) + '/' + encodeURIComponent(order.txn_ref), { method: 'GET' });
-      if (!d.error && pksStatus(d.status) === 'paid') {
+      const d = await qrisFetch(env, '/api/v2/transaction-status/' + encodeURIComponent(env.QRIS_SLUG) + '/' + encodeURIComponent(order.txn_ref), { method: 'GET' });
+      if (!d.error && qrisStatus(d.status) === 'paid') {
         await claimAndCreditTopup(db, env, order.id);
       }
     }
