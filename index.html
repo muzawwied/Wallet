@@ -1117,10 +1117,6 @@
             <div class="topup-amount-display" id="topup-amount-display">Rp 0</div>
             <div class="balance-hint" style="text-align: center;">Minimal Rp 10.000 — maksimal Rp 10.000.000</div>
 
-            <div class="wallet-warning-note" style="margin-top: 14px;">
-                Biaya QRIS ditanggung pembeli dan ditambahkan otomatis ke tagihan. Saldo yang masuk ke dompetmu senilai penuh nominal top up.
-            </div>
-
             <div class="keypad" id="topup-keypad">
                 <button type="button" class="keypad-key" data-k="1">1</button>
                 <button type="button" class="keypad-key" data-k="2">2</button>
@@ -1321,13 +1317,6 @@
             const wdTypeSel = document.getElementById('wd-dest-type');
             if (wdTypeSel) { wdTypeSel.addEventListener('change', updateWdDestLabel); updateWdDestLabel(); }
 
-            const keypadEl = document.getElementById('topup-keypad');
-            if (keypadEl) {
-                keypadEl.addEventListener('click', function (e) {
-                    const btn = e.target.closest('.keypad-key');
-                    if (btn) topupKeypad(btn.getAttribute('data-k'));
-                });
-            }
 
             const qrContainer = document.getElementById('wallet-qrcode');
             if (qrContainer && typeof QRCode !== 'undefined') {
@@ -1589,6 +1578,17 @@
             const el = document.getElementById('topup-amount-display');
             if (el) el.textContent = 'Rp ' + formatRupiah(topupAmountStr ? parseInt(topupAmountStr, 10) : 0);
         }
+
+        // Pasang listener keypad SEKARANG (sinkron) — jangan nunggu API init, biar tombol langsung hidup
+        (function () {
+            const kp = document.getElementById('topup-keypad');
+            if (kp) {
+                kp.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.keypad-key');
+                    if (btn) topupKeypad(btn.getAttribute('data-k'));
+                });
+            }
+        })();
 
         async function startTopup() {
             const errEl = document.getElementById('topup-error');
