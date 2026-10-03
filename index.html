@@ -633,10 +633,10 @@
         .flow-container .form-input, .flow-container select.form-input { width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
         .flow-error { color: #dc2626; font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
         .topup-amount-display { text-align: center; font-size: 2.2rem; font-weight: 700; color: #0f172a; padding: 14px 0 6px; letter-spacing: 0.5px; }
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; max-width: 330px; margin-left: auto; margin-right: auto; }
-        .keypad-key { background: #ffffff; border: none; outline: none; border-radius: 14px; padding: 15px 0; font-size: 1.3rem; font-weight: 600; color: #0f172a; cursor: pointer; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.07); transition: transform 0.08s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent; }
-        .keypad-key:active { transform: scale(0.95); background: #f1f5f9; }
-        .keypad-key.keypad-back { color: #64748b; font-weight: 500; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 24px; padding: 0 24px; margin-top: 22px; max-width: 340px; margin-left: auto; margin-right: auto; }
+        .keypad-key { width: 68px; height: 68px; border: none; outline: none; border-radius: 50%; background-color: #f8fafc; color: #0f172a; font-size: 1.45rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
+        .keypad-key:active { background-color: #e2e8f0; transform: scale(0.92); }
+        .keypad-key.keypad-back { color: #64748b; }
         .topup-qr-box { background: #ffffff; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06); }
         .topup-total-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #475569; margin-top: 12px; }
         .topup-total-row strong { color: #0f172a; }
@@ -1130,7 +1130,7 @@
                 <button type="button" class="keypad-key" data-k="9">9</button>
                 <button type="button" class="keypad-key" data-k="000">000</button>
                 <button type="button" class="keypad-key" data-k="0">0</button>
-                <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus">&#9003;</button>
+                <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
             </div>
 
             <button class="btn-submit" onclick="startTopup()">Buat Kode QR</button>
@@ -1595,7 +1595,7 @@
             if (isNaN(amountVal) || amountVal < 10000) { if (errEl) errEl.textContent = 'Nominal minimal top up Rp 10.000.'; return; }
             if (amountVal > 10000000) { if (errEl) errEl.textContent = 'Nominal maksimal top up Rp 10.000.000.'; return; }
 
-            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Membuat QR…';
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
             try {
                 const res = await fetch(API, {
                     method: 'POST',
