@@ -642,6 +642,24 @@
         .wd-dest-btn.selected { border-color: #2eb8f7; background: #e8f7ff; color: #0284c7; }
         #page-topup, #page-tarik { justify-content: flex-start; }
         #page-topup > .flow-container, #page-tarik > .flow-container { margin-top: auto; margin-bottom: auto; }
+        .wd-dest-list { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .wd-dest-empty { text-align: center; color: #94a3b8; font-size: 0.82rem; padding: 18px 8px; line-height: 1.5; }
+        .wd-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .wd-table th { text-align: left; color: #94a3b8; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 6px 4px 8px; border-bottom: 1.5px solid #e5e9f0; }
+        .wd-table td { padding: 12px 4px; border-bottom: 1px solid #eef2f7; color: #0f172a; vertical-align: middle; }
+        .wd-table tr.wd-row { cursor: pointer; }
+        .wd-table tr.wd-row:active { background: #f8fafc; }
+        .wd-table .td-name { font-weight: 700; font-size: 0.86rem; }
+        .wd-table .td-dest { color: #64748b; font-size: 0.78rem; }
+        .wd-table .td-act { text-align: right; white-space: nowrap; }
+        .wd-tile-btn { border: none; background: none; color: #94a3b8; cursor: pointer; padding: 7px; border-radius: 8px; display: inline-flex; align-items: center; -webkit-tap-highlight-color: transparent; }
+        .wd-tile-btn:active { background: #f1f5f9; }
+        .wd-tile-btn.wd-del-ask { color: #fff; background: #ef4444; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; }
+        .wd-sum { width: 100%; margin: 6px 0 18px; }
+        .wd-sum-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 13px 2px; border-bottom: 1px solid #eef2f7; font-size: 0.85rem; }
+        .wd-sum-row:last-child { border-bottom: none; }
+        .wd-sum-row .k { color: #64748b; }
+        .wd-sum-row .v { font-weight: 600; color: #0f172a; text-align: right; word-break: break-word; }
         .topup-qr-center { display: flex; justify-content: center; margin-top: 22px; }
         .topup-qr-center canvas, .topup-qr-center img { width: 252px; height: 252px; border-radius: 12px; }
         .topup-amt-label { text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 18px; }
@@ -1099,6 +1117,7 @@
             <button class="riwayat-filter active" onclick="filterRiwayat('semua', this)">Semua</button>
             <button class="riwayat-filter" onclick="filterRiwayat('masuk', this)">Masuk</button>
             <button class="riwayat-filter" onclick="filterRiwayat('keluar', this)">Keluar</button>
+            <button class="riwayat-filter" onclick="filterRiwayat('tarik', this)">Tarik</button>
         </div>
 
         <div class="history-section" style="margin-top: 0; max-width: 100%; padding-top: 24px;">
@@ -1167,10 +1186,43 @@
 
         <div class="flow-container">
             <div id="wd-step-1">
-                <div class="balance-hint" style="text-align: center; font-size: 0.8rem; color: #64748b;">Nominal penarikan</div>
+                <div class="wd-dest-list" id="wd-dest-list"></div>
+                <button class="btn-submit" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 12px;" onclick="wdDestFormOpen()">&#43; Tambah Tujuan Baru</button>
+
+                <div id="wd-dest-form" style="display: none; margin-top: 16px; width: 100%;">
+                    <div class="form-group">
+                        <label class="form-label" id="wd-form-title">Tambah Tujuan Baru</label>
+                        <div class="wd-dest-grid" id="wd-dest-grid">
+                            <button type="button" class="wd-dest-btn" data-v="bank">Bank</button>
+                            <button type="button" class="wd-dest-btn" data-v="dana">DANA</button>
+                            <button type="button" class="wd-dest-btn" data-v="ovo">OVO</button>
+                            <button type="button" class="wd-dest-btn" data-v="gopay">GoPay</button>
+                            <button type="button" class="wd-dest-btn" data-v="shopeepay">ShopeePay</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="wd-form-account-label">Nomor Rekening</label>
+                        <div class="form-input-wrapper">
+                            <input type="text" id="wd-form-account" class="form-input" placeholder="Nomor rekening" inputmode="numeric" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nama Pemilik</label>
+                        <div class="form-input-wrapper">
+                            <input type="text" id="wd-form-name" class="form-input" placeholder="Nama sesuai rekening/e-wallet" autocomplete="off">
+                        </div>
+                    </div>
+                    <button class="btn-submit" onclick="wdDestFormSave()">Simpan Tujuan</button>
+                    <button class="btn-submit" onclick="wdDestFormCancel()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Batal</button>
+                </div>
+                <div id="wd-error" class="flow-error"></div>
+            </div>
+
+            <div id="wd-step-2" style="display: none;">
+                <div class="balance-hint" style="text-align: center; font-size: 0.8rem; color: #64748b;" id="wd-dest-picked"></div>
                 <div class="topup-amount-display" id="wd-amount-display">Rp 0</div>
                 <div class="balance-hint" style="text-align: center;">Minimal Rp 10.000 &#8212; maksimal Rp 10.000.000</div>
-                <div class="balance-hint" style="text-align: center;" id="wd-saldo-line" style="margin-top: 10px;">Saldo tersedia: Rp 0</div>
+                <div class="balance-hint" style="text-align: center;" id="wd-saldo-line">Saldo tersedia: Rp 0</div>
                 <div class="keypad" id="wd-keypad">
                     <button type="button" class="keypad-key" data-k="1">1</button>
                     <button type="button" class="keypad-key" data-k="2">2</button>
@@ -1185,45 +1237,31 @@
                     <button type="button" class="keypad-key" data-k="0">0</button>
                     <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
                 </div>
-                <div class="balance-hint" style="text-align: center;" id="wd-fee-line" style="margin-top: 14px;">Biaya penarikan Rp 2.500 &#8212; diterima <strong id="wd-receive-estimate">Rp 0</strong></div>
+                <div class="balance-hint" style="text-align: center; margin-top: 14px;" id="wd-fee-line">Biaya penarikan Rp 2.500 &#8212; diterima <strong id="wd-receive-estimate">Rp 0</strong></div>
                 <button class="btn-submit" onclick="wdNextFromAmount()">Lanjut</button>
-                <div id="wd-error" class="flow-error"></div>
-            </div>
-
-            <div id="wd-step-2" style="display: none;">
-                <div class="balance-hint" style="text-align: center; font-size: 0.8rem; color: #64748b;">Nominal penarikan</div>
-                <div class="topup-amount-display" id="wd-amount-confirm">Rp 0</div>
-                <div class="balance-hint" style="text-align: center;" style="margin-bottom: 16px;">Diterima: <strong id="wd-receive-confirm">Rp 0</strong></div>
-                <div class="form-group">
-                    <label class="form-label">Metode Penarikan</label>
-                    <div class="wd-dest-grid" id="wd-dest-grid">
-                        <button type="button" class="wd-dest-btn selected" data-v="bank">Bank</button>
-                        <button type="button" class="wd-dest-btn" data-v="dana">DANA</button>
-                        <button type="button" class="wd-dest-btn" data-v="ovo">OVO</button>
-                        <button type="button" class="wd-dest-btn" data-v="gopay">GoPay</button>
-                        <button type="button" class="wd-dest-btn" data-v="shopeepay">ShopeePay</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" id="wd-dest-account-label">Nomor Rekening</label>
-                    <div class="form-input-wrapper">
-                        <input type="text" id="wd-dest-account" class="form-input" placeholder="Nomor rekening" inputmode="numeric" autocomplete="off">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Nama Pemilik</label>
-                    <div class="form-input-wrapper">
-                        <input type="text" id="wd-dest-name" class="form-input" placeholder="Nama sesuai rekening/e-wallet" autocomplete="off">
-                    </div>
-                </div>
-                <button class="btn-submit" onclick="wdConfirmSubmit(this)">Ajukan Penarikan</button>
-                <button class="btn-submit" onclick="wdBackToAmount()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Kembali</button>
+                <button class="btn-submit" onclick="wdBackToMetode()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Kembali</button>
                 <div id="wd-error-2" class="flow-error"></div>
             </div>
 
-            <div id="wd-list-section" style="margin-top: 24px;">
-                <div class="history-header"><span class="history-title" style="font-size: 0.9rem;">Riwayat Tarik</span></div>
-                <div id="wd-list"></div>
+            <div id="wd-step-3" style="display: none;">
+                <div class="balance-hint" style="text-align: center; font-size: 0.85rem; color: #0f172a; font-weight: 700;">Konfirmasi Penarikan</div>
+                <div class="wd-sum">
+                    <div class="wd-sum-row"><span class="k">Tujuan</span><span class="v" id="wd-sum-dest"></span></div>
+                    <div class="wd-sum-row"><span class="k">Nominal</span><span class="v" id="wd-sum-amount"></span></div>
+                    <div class="wd-sum-row"><span class="k">Biaya penarikan</span><span class="v">Rp 2.500</span></div>
+                    <div class="wd-sum-row"><span class="k">Diterima</span><span class="v" id="wd-sum-receive"></span></div>
+                </div>
+                <button class="btn-submit" id="wd-submit-btn" onclick="wdSubmitFinal(this)">Ajukan Penarikan</button>
+                <button class="btn-submit" onclick="wdBackToNominal()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Kembali</button>
+                <div id="wd-error-3" class="flow-error"></div>
+            </div>
+
+            <div id="wd-step-done" style="display: none; text-align: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 8px auto 12px;"><circle cx="12" cy="12" r="10"></circle><polyline points="16 9 10.5 14.5 8 12"></polyline></svg>
+                <div style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Penarikan Diajukan</div>
+                <div class="balance-hint" style="text-align: center; margin-top: 6px;" id="wd-done-id"></div>
+                <div class="balance-hint" style="text-align: center;">Dana dikirim ke tujuan dalam 1&#215;24 jam setelah diproses admin.</div>
+                <button class="btn-submit" onclick="wdDoneClose()">Selesai</button>
             </div>
         </div>
     </div>
@@ -1465,11 +1503,19 @@
             }
 
             if (fullList) {
-                const filtered = transactions.filter(t => currentFilter === 'semua' || t.type === currentFilter);
-                if (filtered.length === 0) {
-                    fullList.innerHTML = emptyMarkup;
+                if (currentFilter === 'tarik') {
+                    if (withdrawals.length === 0) {
+                        fullList.innerHTML = '<div class="empty-history-state">Belum ada penarikan</div>';
+                    } else {
+                        fullList.innerHTML = withdrawals.map(w => wdwHistoryMarkup(w)).join('');
+                    }
                 } else {
-                    fullList.innerHTML = filtered.map(item => createHistoryItemMarkup(item)).join('');
+                    const filtered = transactions.filter(t => currentFilter === 'semua' || t.type === currentFilter);
+                    if (filtered.length === 0) {
+                        fullList.innerHTML = emptyMarkup;
+                    } else {
+                        fullList.innerHTML = filtered.map(item => createHistoryItemMarkup(item)).join('');
+                    }
                 }
             }
         }
@@ -1701,77 +1747,140 @@
 
         function openTarik() {
             switchPage('tarik');
+            wdSelDest = null; wdAmountStr = '';
+            wdDestRender();
+            const formEl = document.getElementById('wd-dest-form');
+            if (formEl) formEl.style.display = 'none';
+            wdShowStep(1);
             wdRenderAmount();
-            const saldoEl = document.getElementById('wd-saldo-line');
-            if (saldoEl) saldoEl.textContent = 'Saldo tersedia: Rp ' + formatRupiah(currentBalance);
-            const errEl = document.getElementById('wd-error');
-            if (errEl) errEl.textContent = '';
-            document.getElementById('wd-step-2').style.display = 'none';
-            document.getElementById('wd-step-1').style.display = '';
-            loadWdList();
         }
 
         function closeTarik() {
             switchPage(previousPage || 'dompet');
         }
 
-        function updateWdDestLabel() {
-            const sel = document.getElementById('wd-dest-type');
-            const lbl = document.getElementById('wd-dest-label');
-            const acc = document.getElementById('wd-dest-account');
-            if (!sel || !lbl || !acc) return;
-            if (sel.value === 'bank') {
-                lbl.textContent = 'Nomor Rekening';
-                acc.placeholder = 'Nomor rekening';
-            } else {
-                lbl.textContent = 'Nomor ' + sel.value.toUpperCase();
-                acc.placeholder = 'Contoh: 08123456789';
-            }
-        }
 
-        async function submitTarik() {
-            const amountEl = document.getElementById('wd-amount');
-            const typeEl = document.getElementById('wd-dest-type');
-            const accEl = document.getElementById('wd-dest-account');
-            const errEl = document.getElementById('wd-error');
-            const btn = document.querySelector('#page-tarik .btn-submit');
-            if (!amountEl || !btn) return;
-            const amountVal = parseInt(amountEl.value, 10);
-            if (errEl) errEl.textContent = '';
-            if (isNaN(amountVal) || amountVal < 10000) { if (errEl) errEl.textContent = 'Nominal minimal tarik Rp 10.000.'; return; }
-            if (amountVal + 2500 > currentBalance) { if (errEl) errEl.textContent = 'Saldo tidak cukup (butuh nominal + fee Rp 2.500).'; return; }
-
-            askTxPin(async function (pin) {
-                btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Mengajukan…';
-                try {
-                    const res = await fetch(API, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
-                        body: JSON.stringify({ action: 'wd_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal, dest_type: typeEl.value, dest_account: accEl.value.trim(), pin: pin })
-                    }).then(r => r.json());
-
-                    if (res.success) {
-                        currentBalance = res.balance || currentBalance;
-                        const hintEl = document.getElementById('wd-available-hint');
-                        if (hintEl) hintEl.textContent = 'Rp ' + formatRupiah(currentBalance);
-                        amountEl.value = ''; accEl.value = '';
-                        if (errEl) { errEl.textContent = 'Penarikan ' + res.withdrawal_id + ' diajukan — diproses ke tujuan dalam 1\u00d724 jam.'; errEl.style.color = '#16a34a'; setTimeout(function () { errEl.style.color = ''; }, 6000); }
-                        await loadWalletState();
-                        await loadWdList();
-                    } else {
-                        if (errEl) errEl.textContent = res.error || 'Pengajuan gagal.';
-                    }
-                } catch (e) {
-                    if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
-                } finally {
-                    btn.disabled = false; btn.innerHTML = 'Ajukan Penarikan';
-                }
-            });
-        }
-
-        // ===== ALUR TARIK ala fitur Pembayaran Clincoo: nominal → tujuan → PIN → menunggu proses =====
+        // ===== ALUR TARIK ala Clincoo: metode (tujuan tersimpan CRUD) → nominal → konfirmasi → PIN → selesai =====
         let wdAmountStr = '';
-        let wdDestType = 'bank';
+        let wdSelDest = null;
+        let wdFormEditId = null;
+        let wdFormType = 'bank';
+        const WD_PENCIL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>';
+        const WD_TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+
+        function wdDestsKey() { return 'wallet_wd_dests_' + (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(); }
+        function wdDestsLoad() { try { return JSON.parse(localStorage.getItem(wdDestsKey()) || '[]') || []; } catch (e) { return []; } }
+        function wdDestsSave(arr) { try { localStorage.setItem(wdDestsKey(), JSON.stringify(arr)); } catch (e) {} }
+        function wdTypeLabel(t) { return t === 'bank' ? 'Bank' : String(t || '').toUpperCase(); }
+        function wdMask(a) { a = String(a || ''); return a.length > 10 ? a.slice(0, 6) + '...' + a.slice(-4) : a; }
+
+        function wdShowStep(n) {
+            [1, 2, 3, 4].forEach(function (i) {
+                const el = document.getElementById('wd-step-' + (i === 4 ? 'done' : i));
+                if (el) el.style.display = (i === n) ? '' : 'none';
+            });
+            ['wd-error', 'wd-error-2', 'wd-error-3'].forEach(function (id) { const el = document.getElementById(id); if (el) el.textContent = ''; });
+        }
+
+        function wdDestRender() {
+            const listEl = document.getElementById('wd-dest-list');
+            if (!listEl) return;
+            const dests = wdDestsLoad();
+            if (!dests.length) {
+                listEl.innerHTML = '<div class="wd-dest-empty">Belum ada tujuan tersimpan.<br>Tambahkan rekening bank atau e-wallet kamu.</div>';
+                return;
+            }
+            listEl.innerHTML = '<table class="wd-table"><thead><tr><th>Nama</th><th>Tujuan</th><th style="text-align: right;">Aksi</th></tr></thead><tbody>'
+                + dests.map(function (d) {
+                    return '<tr class="wd-row" data-id="' + d.id + '" onclick="wdDestPick(\'' + d.id + '\')">'
+                        + '<td class="td-name">' + escapeHtml(d.name || '') + '</td>'
+                        + '<td class="td-dest">' + wdTypeLabel(d.type) + ' \u2022 ' + wdMask(d.account) + '</td>'
+                        + '<td class="td-act">'
+                        + '<button type="button" class="wd-tile-btn" onclick="event.stopPropagation();wdDestFormOpen(\'' + d.id + '\')" aria-label="Ubah">' + WD_PENCIL_SVG + '</button>'
+                        + '<button type="button" class="wd-tile-btn wd-del" data-id="' + d.id + '" onclick="event.stopPropagation();wdDestDeleteBtn(this)" aria-label="Hapus">' + WD_TRASH_SVG + '</button>'
+                        + '</td></tr>';
+                }).join('')
+                + '</tbody></table>';
+        }
+
+        function wdDestDeleteBtn(btn) {
+            if (btn.dataset.ask === '1') {
+                wdDestsSave(wdDestsLoad().filter(function (d) { return d.id !== btn.dataset.id; }));
+                wdDestRender();
+                return;
+            }
+            btn.dataset.ask = '1';
+            btn.classList.add('wd-del-ask');
+            btn.textContent = 'Hapus?';
+            setTimeout(function () {
+                if (btn.isConnected) { btn.dataset.ask = ''; btn.classList.remove('wd-del-ask'); btn.innerHTML = WD_TRASH_SVG; }
+            }, 2600);
+        }
+
+        function wdFormEwRender() {
+            const grid = document.getElementById('wd-dest-grid');
+            if (!grid) return;
+            grid.querySelectorAll('.wd-dest-btn').forEach(function (b) {
+                b.classList.toggle('selected', b.getAttribute('data-v') === wdFormType);
+            });
+            const lbl = document.getElementById('wd-form-account-label');
+            const acc = document.getElementById('wd-form-account');
+            if (wdFormType === 'bank') { lbl.textContent = 'Nomor Rekening'; acc.placeholder = 'Nomor rekening'; }
+            else { lbl.textContent = 'Nomor ' + wdFormType.toUpperCase(); acc.placeholder = 'Contoh: 08123456789'; }
+        }
+
+        function wdDestFormOpen(id) {
+            wdFormEditId = id || null;
+            const d = id ? wdDestsLoad().find(function (x) { return x.id === id; }) : null;
+            wdFormType = d ? d.type : 'bank';
+            document.getElementById('wd-form-title').textContent = d ? 'Ubah Tujuan' : 'Tambah Tujuan Baru';
+            document.getElementById('wd-form-account').value = d ? d.account : '';
+            document.getElementById('wd-form-name').value = d ? d.name : '';
+            wdFormEwRender();
+            document.getElementById('wd-dest-form').style.display = '';
+            const errEl = document.getElementById('wd-error');
+            if (errEl) errEl.textContent = '';
+        }
+
+        function wdDestFormCancel() {
+            document.getElementById('wd-dest-form').style.display = 'none';
+        }
+
+        function wdDestFormSave() {
+            const errEl = document.getElementById('wd-error');
+            if (errEl) errEl.textContent = '';
+            const acc = (document.getElementById('wd-form-account').value || '').replace(/[\s-]/g, '');
+            const name = (document.getElementById('wd-form-name').value || '').trim();
+            if (wdFormType === 'bank') {
+                if (!/^[A-Za-z0-9]{5,25}$/.test(acc)) { if (errEl) errEl.textContent = 'Nomor rekening tidak valid.'; return; }
+            } else if (!/^(?:0|62)8\d{7,12}$/.test(acc)) {
+                if (errEl) errEl.textContent = 'Nomor ' + wdFormType.toUpperCase() + ' tidak valid (contoh: 08123456789).'; return;
+            }
+            if (!name) { if (errEl) errEl.textContent = 'Isi nama pemilik rekening/e-wallet.'; return; }
+            const arr = wdDestsLoad();
+            if (wdFormEditId) {
+                const d = arr.find(function (x) { return x.id === wdFormEditId; });
+                if (d) { d.type = wdFormType; d.account = acc; d.name = name; }
+            } else {
+                arr.push({ id: 'wd' + Date.now().toString(36), type: wdFormType, account: acc, name: name });
+            }
+            wdDestsSave(arr);
+            wdDestRender();
+            wdDestFormCancel();
+        }
+
+        function wdDestPick(id) {
+            const d = wdDestsLoad().find(function (x) { return x.id === id; });
+            if (!d) return;
+            wdSelDest = d;
+            const pickedEl = document.getElementById('wd-dest-picked');
+            if (pickedEl) pickedEl.textContent = wdTypeLabel(d.type) + ' \u2022 ' + wdMask(d.account) + ' \u2022 ' + (d.name || '');
+            wdAmountStr = '';
+            wdRenderAmount();
+            wdShowStep(2);
+        }
+
+        function wdBackToMetode() { wdShowStep(1); wdDestRender(); }
 
         function wdKeypad(k) {
             if (k === 'back') { wdAmountStr = wdAmountStr.slice(0, -1); }
@@ -1782,73 +1891,60 @@
             const v = wdAmountStr ? parseInt(wdAmountStr, 10) : 0;
             const dEl = document.getElementById('wd-amount-display');
             if (dEl) dEl.textContent = 'Rp ' + formatRupiah(v);
-            const fee = 2500;
-            const recv = Math.max(0, v - (v > 0 ? fee : 0));
+            const recv = Math.max(0, v - (v > 0 ? 2500 : 0));
             const rEl = document.getElementById('wd-receive-estimate');
             if (rEl) rEl.textContent = 'Rp ' + formatRupiah(recv);
             const fEl = document.getElementById('wd-fee-line');
-            if (fEl && v > 0) fEl.style.visibility = 'visible'; else if (fEl) fEl.style.visibility = 'hidden';
+            if (fEl) fEl.style.visibility = v > 0 ? 'visible' : 'hidden';
         }
         function wdNextFromAmount() {
-            const errEl = document.getElementById('wd-error');
+            const errEl = document.getElementById('wd-error-2');
             if (errEl) errEl.textContent = '';
             const v = wdAmountStr ? parseInt(wdAmountStr, 10) : 0;
             if (!v || v < 10000) { if (errEl) errEl.textContent = 'Nominal minimal tarik Rp 10.000.'; return; }
             if (v > 10000000) { if (errEl) errEl.textContent = 'Maksimal Rp 10.000.000.'; return; }
             if (v + 2500 > currentBalance) { if (errEl) errEl.textContent = 'Saldo tidak cukup (butuh nominal + fee Rp ' + formatRupiah(v + 2500) + ').'; return; }
-            const cEl = document.getElementById('wd-amount-confirm');
-            if (cEl) cEl.textContent = 'Rp ' + formatRupiah(v);
-            const rEl = document.getElementById('wd-receive-confirm');
-            if (rEl) rEl.textContent = 'Rp ' + formatRupiah(v - 2500);
-            document.getElementById('wd-step-1').style.display = 'none';
-            document.getElementById('wd-step-2').style.display = '';
+            document.getElementById('wd-sum-dest').textContent = wdTypeLabel(wdSelDest.type) + ' - ' + wdMask(wdSelDest.account) + (wdSelDest.name ? ' (' + wdSelDest.name + ')' : '');
+            document.getElementById('wd-sum-amount').textContent = 'Rp ' + formatRupiah(v);
+            document.getElementById('wd-sum-receive').textContent = 'Rp ' + formatRupiah(v - 2500);
+            wdShowStep(3);
         }
-        function wdBackToAmount() {
-            document.getElementById('wd-step-2').style.display = 'none';
-            document.getElementById('wd-step-1').style.display = '';
-            const errEl = document.getElementById('wd-error');
+        function wdBackToNominal() { wdShowStep(2); }
+
+        function wdSubmitFinal(btn) {
+            const errEl = document.getElementById('wd-error-3');
             if (errEl) errEl.textContent = '';
-        }
-        function wdConfirmSubmit(btn) {
-            const accEl = document.getElementById('wd-dest-account');
-            const nameEl = document.getElementById('wd-dest-name');
-            const errEl = document.getElementById('wd-error-2');
-            if (errEl) errEl.textContent = '';
-            const acc = (accEl.value || '').replace(/[\s-]/g, '');
-            if (wdDestType === 'bank') {
-                if (!/^[A-Za-z0-9]{5,25}$/.test(acc)) { if (errEl) errEl.textContent = 'Nomor rekening tidak valid.'; return; }
-            } else if (!/^(?:0|62)8\d{7,12}$/.test(acc)) {
-                if (errEl) errEl.textContent = 'Nomor ' + wdDestType.toUpperCase() + ' tidak valid (contoh: 08123456789).'; return;
-            }
-            if (!(nameEl.value || '').trim()) { if (errEl) errEl.textContent = 'Isi nama pemilik rekening/e-wallet.'; return; }
             const amountVal = parseInt(wdAmountStr, 10);
+            if (!wdSelDest || !amountVal) { if (errEl) errEl.textContent = 'Data tidak lengkap — ulangi dari awal.'; wdShowStep(1); return; }
             askTxPin(async function (pin) {
                 btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
                 try {
                     const res = await fetch(API, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
-                        body: JSON.stringify({ action: 'wd_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal, dest_type: wdDestType, dest_account: acc, dest_name: (nameEl.value || '').trim(), pin: pin })
+                        body: JSON.stringify({ action: 'wd_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal, dest_type: wdSelDest.type, dest_account: wdSelDest.account, dest_name: wdSelDest.name, pin: pin })
                     }).then(r => r.json());
                     if (res.success) {
                         currentBalance = res.balance || currentBalance;
-                        await loadWalletState();
-                        await loadWdList();
-                        wdAmountStr = ''; wdRenderAmount();
-                        accEl.value = ''; nameEl.value = '';
-                        wdBackToAmount();
-                        const okEl = document.getElementById('wd-error');
-                        if (okEl) { okEl.textContent = 'Penarikan ' + res.withdrawal_id + ' diajukan — menunggu proses admin.'; errEl.style.color = '#16a34a'; setTimeout(function () { errEl.style.color = ''; errEl.textContent = ''; }, 8000); }
+                        document.getElementById('wd-done-id').textContent = res.withdrawal_id;
+                        wdShowStep(4);
+                        loadWalletState();
+                        loadWdList();
                     } else {
+                        wdShowStep(3);
                         if (errEl) errEl.textContent = res.error || 'Pengajuan gagal.';
                     }
                 } catch (e) {
+                    wdShowStep(3);
                     if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
                 } finally {
                     btn.disabled = false; btn.innerHTML = 'Ajukan Penarikan';
                 }
             });
         }
+
+        function wdDoneClose() { closeTarik(); }
+
         (function () {
             const kp = document.getElementById('wd-keypad');
             if (kp) {
@@ -1862,35 +1958,21 @@
                 grid.addEventListener('click', function (e) {
                     const b = e.target.closest('.wd-dest-btn');
                     if (!b) return;
-                    grid.querySelectorAll('.wd-dest-btn').forEach(function (x) { x.classList.remove('selected'); });
-                    b.classList.add('selected');
-                    wdDestType = b.getAttribute('data-v');
-                    const lbl = document.getElementById('wd-dest-account-label');
-                    const acc = document.getElementById('wd-dest-account');
-                    if (wdDestType === 'bank') { lbl.textContent = 'Nomor Rekening'; acc.placeholder = 'Nomor rekening'; }
-                    else { lbl.textContent = 'Nomor ' + wdDestType.toUpperCase(); acc.placeholder = 'Contoh: 08123456789'; }
+                    wdFormType = b.getAttribute('data-v');
+                    wdFormEwRender();
                 });
             }
         })();
 
+        let withdrawals = [];
         async function loadWdList() {
-            const listEl = document.getElementById('wd-list');
-            if (!listEl) return;
             try {
                 const res = await fetch(API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
                     body: JSON.stringify({ action: 'wd_list', address: walletAddress })
                 }).then(r => r.json());
-                if (!res.success || !res.withdrawals || !res.withdrawals.length) {
-                    listEl.innerHTML = '<div class="wd-meta" style="padding:10px 2px;">Belum ada riwayat penarikan.</div>';
-                    return;
-                }
-                listEl.innerHTML = res.withdrawals.map(function (w) {
-                    const badge = w.status === 'paid' ? '<span class="wd-badge paid">Selesai</span>' : (w.status === 'rejected' ? '<span class="wd-badge rejected">Ditolak — dana kembali</span>' : '<span class="wd-badge">Diproses</span>');
-                    return '<div class="wd-item"><div><strong>Rp ' + formatRupiah(w.amount) + '</strong>'
-                        + '<div class="wd-meta">' + String(w.dest_type).toUpperCase() + ' \u2022 ' + String(w.dest_account).slice(0, 6) + '\u2026 \u2022 ' + (w.created_at || '') + '</div></div>' + badge + '</div>';
-                }).join('');
+                if (res.success) { withdrawals = res.withdrawals || []; renderHistory(); }
             } catch (e) {}
         }
 
@@ -1978,12 +2060,24 @@
         function openRiwayat() {
             switchPage('riwayat');
             document.querySelector('.bottom-nav').style.display = 'none';
+            loadWdList();
         }
         
         function closeRiwayat() {
             switchPage(previousPage || 'dompet');
         }
         
+        function wdwHistoryMarkup(w) {
+            const badge = w.status === 'paid' ? '<span class="wd-badge paid">Selesai</span>' : (w.status === 'rejected' ? '<span class="wd-badge rejected">Ditolak</span>' : '<span class="wd-badge">Diproses</span>');
+            const upSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+            return '<div class="history-item" data-type="tarik">'
+                + '<div class="history-item-left"><div class="history-icon-wrapper icon-out">' + upSvg + '</div>'
+                + '<div class="history-details"><span class="history-name">Tarik ke ' + wdTypeLabel(w.dest_type) + '</span>'
+                + '<span class="history-date">' + escapeHtml((w.dest_name ? w.dest_name + ' \u2022 ' : '') + wdMask(w.dest_account) + ' \u2022 ' + fmtTime(w.created_at)) + '</span></div></div>'
+                + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;"><span class="history-amount amount-out">-Rp ' + formatRupiah(w.amount) + '</span>' + badge + '</div>'
+                + '</div>';
+        }
+
         function filterRiwayat(type, btn) {
             document.querySelectorAll('.riwayat-filter').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');

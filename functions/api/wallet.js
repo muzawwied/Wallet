@@ -196,7 +196,7 @@ async function wdNotifyAdmin(env, w) {
       body: JSON.stringify({ to, from_email: 'noreply@clincoo.buzz', from_name: 'ClincooPay', subject, text, html })
     });
     const d = await r.json().catch(() => ({}));
-    return { sent: !!(d && (d.success || d.sent || d.id)), id: d.id || d.sent || null };
+    return { sent: !!(d && (d.ok || d.success || d.sent || d.messageId || d.id)), id: (d && (d.messageId || d.id)) || null };
   } catch (e) { return { sent: false, reason: 'bridge gagal dihubungi' }; }
 }
 
@@ -383,7 +383,7 @@ export async function onRequestGet({ request, env }) {
   }
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, context }) {
   const db = env.DB;
   if (!db) return j({ error: 'D1 not bound' }, 500);
   try {
@@ -1043,8 +1043,10 @@ export async function onRequestPost({ request, env }) {
       await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
         .bind('WDT-' + wdId, address, ZERO_ADDR, amount + fee, 'Tarik saldo → ' + destType.toUpperCase() + ' ' + destAccount.slice(0, 4) + '\u2026').run();
       await logActivity(db, address, 'tarik', 'Tarik Rp ' + amount + ' ke ' + destType.toUpperCase() + ' (+fee ' + fee + ')');
-      const notify = await wdNotifyAdmin(env, { id: wdId, address: address, amount: amount, fee: fee, dest_type: destType, dest_account: destAccount, dest_name: destName });
-      return j({ success: true, withdrawal_id: wdId, amount: amount, fee: fee, debited: amount + fee, balance: await getBalance(db, address), email_sent: notify && notify.sent });
+      // kirim email admin di belakang — jangan tahan responsnya
+      const notifyP = wdNotifyAdmin(env, { id: wdId, address: address, amount: amount, fee: fee, dest_type: destType, dest_account: destAccount, dest_name: destName }).catch(function () {});
+      if (context && context.waitUntil) context.waitUntil(notifyP);
+      return j({ success: true, withdrawal_id: wdId, amount: amount, fee: fee, debited: amount + fee, balance: await getBalance(db, address) });
     }
 
     if (action === 'wd_list') {
