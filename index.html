@@ -637,6 +637,11 @@
         .keypad-key { width: 68px; height: 68px; border: none; outline: none; border-radius: 50%; background-color: #f8fafc; color: #0f172a; font-size: 1.45rem; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: auto; cursor: pointer; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; }
         .keypad-key:active { background-color: #e2e8f0; transform: scale(0.92); }
         .keypad-key.keypad-back { color: #64748b; }
+        .wd-dest-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+        .wd-dest-btn { flex: 1 1 auto; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #e5e9f0; background: #fff; color: #0f172a; font-size: 0.85rem; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all 0.12s ease; }
+        .wd-dest-btn.selected { border-color: #2eb8f7; background: #e8f7ff; color: #0284c7; }
+        #page-topup, #page-tarik { justify-content: flex-start; }
+        #page-topup > .flow-container, #page-tarik > .flow-container { margin-top: auto; margin-bottom: auto; }
         .topup-qr-center { display: flex; justify-content: center; margin-top: 22px; }
         .topup-qr-center canvas, .topup-qr-center img { width: 252px; height: 252px; border-radius: 12px; }
         .topup-amt-label { text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 18px; }
@@ -1161,40 +1166,60 @@
         </div>
 
         <div class="flow-container">
-            <div class="form-group">
-                <label class="form-label">Nominal Penarikan</label>
-                <div class="form-input-wrapper">
-                    <input type="number" id="wd-amount" class="form-input amount-input" placeholder="0" min="10000">
+            <div id="wd-step-1">
+                <div class="balance-hint" style="text-align: center; font-size: 0.8rem; color: #64748b;">Nominal penarikan</div>
+                <div class="topup-amount-display" id="wd-amount-display">Rp 0</div>
+                <div class="balance-hint" style="text-align: center;">Minimal Rp 10.000 &#8212; maksimal Rp 10.000.000</div>
+                <div class="balance-hint" style="text-align: center;" id="wd-saldo-line" style="margin-top: 10px;">Saldo tersedia: Rp 0</div>
+                <div class="keypad" id="wd-keypad">
+                    <button type="button" class="keypad-key" data-k="1">1</button>
+                    <button type="button" class="keypad-key" data-k="2">2</button>
+                    <button type="button" class="keypad-key" data-k="3">3</button>
+                    <button type="button" class="keypad-key" data-k="4">4</button>
+                    <button type="button" class="keypad-key" data-k="5">5</button>
+                    <button type="button" class="keypad-key" data-k="6">6</button>
+                    <button type="button" class="keypad-key" data-k="7">7</button>
+                    <button type="button" class="keypad-key" data-k="8">8</button>
+                    <button type="button" class="keypad-key" data-k="9">9</button>
+                    <button type="button" class="keypad-key" data-k="000">000</button>
+                    <button type="button" class="keypad-key" data-k="0">0</button>
+                    <button type="button" class="keypad-key keypad-back" data-k="back" aria-label="Hapus"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
                 </div>
-                <div class="balance-hint">Tersedia: <span id="wd-available-hint">Rp 0</span> — minimal Rp 10.000</div>
+                <div class="balance-hint" style="text-align: center;" id="wd-fee-line" style="margin-top: 14px;">Biaya penarikan Rp 2.500 &#8212; diterima <strong id="wd-receive-estimate">Rp 0</strong></div>
+                <button class="btn-submit" onclick="wdNextFromAmount()">Lanjut</button>
+                <div id="wd-error" class="flow-error"></div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Metode</label>
-                <div class="form-input-wrapper">
-                    <select id="wd-dest-type" class="form-input">
-                        <option value="bank">Transfer Bank</option>
-                        <option value="dana">DANA</option>
-                        <option value="ovo">OVO</option>
-                        <option value="gopay">GoPay</option>
-                        <option value="shopeepay">ShopeePay</option>
-                    </select>
+            <div id="wd-step-2" style="display: none;">
+                <div class="balance-hint" style="text-align: center; font-size: 0.8rem; color: #64748b;">Nominal penarikan</div>
+                <div class="topup-amount-display" id="wd-amount-confirm">Rp 0</div>
+                <div class="balance-hint" style="text-align: center;" style="margin-bottom: 16px;">Diterima: <strong id="wd-receive-confirm">Rp 0</strong></div>
+                <div class="form-group">
+                    <label class="form-label">Metode Penarikan</label>
+                    <div class="wd-dest-grid" id="wd-dest-grid">
+                        <button type="button" class="wd-dest-btn selected" data-v="bank">Bank</button>
+                        <button type="button" class="wd-dest-btn" data-v="dana">DANA</button>
+                        <button type="button" class="wd-dest-btn" data-v="ovo">OVO</button>
+                        <button type="button" class="wd-dest-btn" data-v="gopay">GoPay</button>
+                        <button type="button" class="wd-dest-btn" data-v="shopeepay">ShopeePay</button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" id="wd-dest-label">Nomor Rekening</label>
-                <div class="form-input-wrapper">
-                    <input type="text" id="wd-dest-account" class="form-input" placeholder="Nomor rekening" inputmode="numeric">
+                <div class="form-group">
+                    <label class="form-label" id="wd-dest-account-label">Nomor Rekening</label>
+                    <div class="form-input-wrapper">
+                        <input type="text" id="wd-dest-account" class="form-input" placeholder="Nomor rekening" inputmode="numeric" autocomplete="off">
+                    </div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Pemilik</label>
+                    <div class="form-input-wrapper">
+                        <input type="text" id="wd-dest-name" class="form-input" placeholder="Nama sesuai rekening/e-wallet" autocomplete="off">
+                    </div>
+                </div>
+                <button class="btn-submit" onclick="wdConfirmSubmit(this)">Ajukan Penarikan</button>
+                <button class="btn-submit" onclick="wdBackToAmount()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Kembali</button>
+                <div id="wd-error-2" class="flow-error"></div>
             </div>
-
-            <div class="wallet-warning-note">
-                Biaya penarikan Rp 2.500 flat per transaksi. Dana diproses ke tujuan dalam 1×24 jam setelah permintaan diajukan. Pastikan nomor tujuan benar — pengiriman ke tujuan salah tidak dapat dibatalkan.
-            </div>
-
-            <button class="btn-submit" onclick="submitTarik()">Ajukan Penarikan</button>
-            <div id="wd-error" class="flow-error"></div>
 
             <div id="wd-list-section" style="margin-top: 24px;">
                 <div class="history-header"><span class="history-title" style="font-size: 0.9rem;">Riwayat Tarik</span></div>
@@ -1388,6 +1413,8 @@
         }
 
         function updateBalanceDisplay() {
+            const wdSaldoEl = document.getElementById('wd-saldo-line');
+            if (wdSaldoEl) wdSaldoEl.textContent = 'Saldo tersedia: Rp ' + formatRupiah(currentBalance);
             const balanceEl = document.getElementById('balance-val');
             const availableHintEl = document.getElementById('available-balance-hint');
             if (balanceEl) {
@@ -1674,10 +1701,13 @@
 
         function openTarik() {
             switchPage('tarik');
-            const hintEl = document.getElementById('wd-available-hint');
-            if (hintEl) hintEl.textContent = 'Rp ' + formatRupiah(currentBalance);
+            wdRenderAmount();
+            const saldoEl = document.getElementById('wd-saldo-line');
+            if (saldoEl) saldoEl.textContent = 'Saldo tersedia: Rp ' + formatRupiah(currentBalance);
             const errEl = document.getElementById('wd-error');
             if (errEl) errEl.textContent = '';
+            document.getElementById('wd-step-2').style.display = 'none';
+            document.getElementById('wd-step-1').style.display = '';
             loadWdList();
         }
 
@@ -1738,6 +1768,110 @@
                 }
             });
         }
+
+        // ===== ALUR TARIK ala fitur Pembayaran Clincoo: nominal → tujuan → PIN → menunggu proses =====
+        let wdAmountStr = '';
+        let wdDestType = 'bank';
+
+        function wdKeypad(k) {
+            if (k === 'back') { wdAmountStr = wdAmountStr.slice(0, -1); }
+            else if (wdAmountStr.length < 10) { wdAmountStr += k; }
+            wdRenderAmount();
+        }
+        function wdRenderAmount() {
+            const v = wdAmountStr ? parseInt(wdAmountStr, 10) : 0;
+            const dEl = document.getElementById('wd-amount-display');
+            if (dEl) dEl.textContent = 'Rp ' + formatRupiah(v);
+            const fee = 2500;
+            const recv = Math.max(0, v - (v > 0 ? fee : 0));
+            const rEl = document.getElementById('wd-receive-estimate');
+            if (rEl) rEl.textContent = 'Rp ' + formatRupiah(recv);
+            const fEl = document.getElementById('wd-fee-line');
+            if (fEl && v > 0) fEl.style.visibility = 'visible'; else if (fEl) fEl.style.visibility = 'hidden';
+        }
+        function wdNextFromAmount() {
+            const errEl = document.getElementById('wd-error');
+            if (errEl) errEl.textContent = '';
+            const v = wdAmountStr ? parseInt(wdAmountStr, 10) : 0;
+            if (!v || v < 10000) { if (errEl) errEl.textContent = 'Nominal minimal tarik Rp 10.000.'; return; }
+            if (v > 10000000) { if (errEl) errEl.textContent = 'Maksimal Rp 10.000.000.'; return; }
+            if (v + 2500 > currentBalance) { if (errEl) errEl.textContent = 'Saldo tidak cukup (butuh nominal + fee Rp ' + formatRupiah(v + 2500) + ').'; return; }
+            const cEl = document.getElementById('wd-amount-confirm');
+            if (cEl) cEl.textContent = 'Rp ' + formatRupiah(v);
+            const rEl = document.getElementById('wd-receive-confirm');
+            if (rEl) rEl.textContent = 'Rp ' + formatRupiah(v - 2500);
+            document.getElementById('wd-step-1').style.display = 'none';
+            document.getElementById('wd-step-2').style.display = '';
+        }
+        function wdBackToAmount() {
+            document.getElementById('wd-step-2').style.display = 'none';
+            document.getElementById('wd-step-1').style.display = '';
+            const errEl = document.getElementById('wd-error');
+            if (errEl) errEl.textContent = '';
+        }
+        function wdConfirmSubmit(btn) {
+            const accEl = document.getElementById('wd-dest-account');
+            const nameEl = document.getElementById('wd-dest-name');
+            const errEl = document.getElementById('wd-error-2');
+            if (errEl) errEl.textContent = '';
+            const acc = (accEl.value || '').replace(/[\s-]/g, '');
+            if (wdDestType === 'bank') {
+                if (!/^[A-Za-z0-9]{5,25}$/.test(acc)) { if (errEl) errEl.textContent = 'Nomor rekening tidak valid.'; return; }
+            } else if (!/^(?:0|62)8\d{7,12}$/.test(acc)) {
+                if (errEl) errEl.textContent = 'Nomor ' + wdDestType.toUpperCase() + ' tidak valid (contoh: 08123456789).'; return;
+            }
+            if (!(nameEl.value || '').trim()) { if (errEl) errEl.textContent = 'Isi nama pemilik rekening/e-wallet.'; return; }
+            const amountVal = parseInt(wdAmountStr, 10);
+            askTxPin(async function (pin) {
+                btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
+                try {
+                    const res = await fetch(API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-wallet-secret': walletSecret },
+                        body: JSON.stringify({ action: 'wd_create', address: (walletAddress || localStorage.getItem('user_wallet_address') || '').toLowerCase(), amount: amountVal, dest_type: wdDestType, dest_account: acc, dest_name: (nameEl.value || '').trim(), pin: pin })
+                    }).then(r => r.json());
+                    if (res.success) {
+                        currentBalance = res.balance || currentBalance;
+                        await loadWalletState();
+                        await loadWdList();
+                        wdAmountStr = ''; wdRenderAmount();
+                        accEl.value = ''; nameEl.value = '';
+                        wdBackToAmount();
+                        const okEl = document.getElementById('wd-error');
+                        if (okEl) { okEl.textContent = 'Penarikan ' + res.withdrawal_id + ' diajukan — menunggu proses admin.'; errEl.style.color = '#16a34a'; setTimeout(function () { errEl.style.color = ''; errEl.textContent = ''; }, 8000); }
+                    } else {
+                        if (errEl) errEl.textContent = res.error || 'Pengajuan gagal.';
+                    }
+                } catch (e) {
+                    if (errEl) errEl.textContent = 'Tidak dapat terhubung ke server.';
+                } finally {
+                    btn.disabled = false; btn.innerHTML = 'Ajukan Penarikan';
+                }
+            });
+        }
+        (function () {
+            const kp = document.getElementById('wd-keypad');
+            if (kp) {
+                kp.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.keypad-key');
+                    if (btn) wdKeypad(btn.getAttribute('data-k'));
+                });
+            }
+            const grid = document.getElementById('wd-dest-grid');
+            if (grid) {
+                grid.addEventListener('click', function (e) {
+                    const b = e.target.closest('.wd-dest-btn');
+                    if (!b) return;
+                    grid.querySelectorAll('.wd-dest-btn').forEach(function (x) { x.classList.remove('selected'); });
+                    b.classList.add('selected');
+                    wdDestType = b.getAttribute('data-v');
+                    const lbl = document.getElementById('wd-dest-account-label');
+                    const acc = document.getElementById('wd-dest-account');
+                    if (wdDestType === 'bank') { lbl.textContent = 'Nomor Rekening'; acc.placeholder = 'Nomor rekening'; }
+                    else { lbl.textContent = 'Nomor ' + wdDestType.toUpperCase(); acc.placeholder = 'Contoh: 08123456789'; }
+                });
+            }
+        })();
 
         async function loadWdList() {
             const listEl = document.getElementById('wd-list');

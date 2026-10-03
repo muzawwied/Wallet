@@ -94,6 +94,7 @@ async function ensureSchema(db) {
     processed_at TEXT
   )`).run();
   try { await db.prepare(`CREATE INDEX IF NOT EXISTS idx_wdw_addr ON wallet_withdrawals (address)`).run(); } catch (e) {}
+  try { await db.prepare(`ALTER TABLE wallet_withdrawals ADD COLUMN dest_name TEXT`).run(); } catch (e) {}
 }
 
 function hexToBytes(hex) {
@@ -124,7 +125,79 @@ function randomSecret() {
 
 function sha256(text) {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text)))
-    .then(buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''));
+    .then(b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''));
+}
+
+// Tanda tangan link admin penarikan (HMAC-SHA256 pakai ADMIN_SECRET) — pola sama dengan fitur Pembayaran Clincoo
+async function wdSig(adminSecret, payload) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(adminSecret || '')), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const b = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload)));
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+// Email notifikasi ke admin dengan link 'Tandai Selesai' / 'Tolak' (best-effort, tidak menggagalkan wd_create)
+async function wdNotifyAdmin(env, w) {
+  const url = env.MAIL_BRIDGE_URL, key = env.MAIL_BRIDGE_KEY, to = env.WITHDRAW_NOTIFY_EMAIL;
+  if (!url || !key || !to) return { sent: false, reason: 'notifikasi email belum dikonfigurasi' };
+  const rp = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+  const sigV = await wdSig(env.ADMIN_SECRET, w.id + '|verify');
+  const sigDone = await wdSig(env.ADMIN_SECRET, w.id + '|done');
+  const sigRej = await wdSig(env.ADMIN_SECRET, w.id + '|rejected');
+  const base = (env.WALLET_BASE_URL || 'https://wallet.clincoo.buzz') + '/api/wallet?action=';
+  const verifyUrl = base + 'wd_verify&id=' + encodeURIComponent(w.id) + '&sig=' + sigV;
+  const doneUrl = base + 'wd_confirm&id=' + encodeURIComponent(w.id) + '&decision=done&sig=' + sigDone;
+  const rejUrl = base + 'wd_confirm&id=' + encodeURIComponent(w.id) + '&decision=rejected&sig=' + sigRej;
+  const label = String(w.dest_type || '').toUpperCase();
+  const subject = '[Permintaan Penarikan] ' + rp(w.amount) + ' - ' + label + ' ' + w.dest_account + ' - ' + String(w.address || '').slice(0, 10) + '...';
+  const text = [
+    'Ada permintaan tarik saldo baru dari Wallet ClincooPay.',
+    '',
+    'ID Penarikan: ' + w.id,
+    'Alamat dompet: ' + w.address,
+    'Nominal: ' + rp(w.amount),
+    'Biaya penarikan: ' + rp(w.fee),
+    'Total potong saldo: ' + rp(Number(w.amount) + Number(w.fee)),
+    'Diterima pemilik: ' + rp(w.amount),
+    'Tujuan: ' + label + ' - ' + w.dest_account + (w.dest_name ? ' (' + w.dest_name + ')' : ''),
+    'Waktu: ' + new Date().toISOString(),
+    '',
+    'Verifikasi cepat:',
+    verifyUrl,
+    '',
+    '=== KONFIRMASI PENARIKAN (klik salah satu) ===',
+    '',
+    '1. Tandai Selesai - dana sudah dikirim ke tujuan:',
+    doneUrl,
+    '',
+    '2. Tolak Penarikan - batalkan dan kembalikan saldo dompet:',
+    rejUrl,
+    '',
+    'Tautan di atas bertanda tangan digital dan hanya berlaku untuk penarikan ini.'
+  ].join('\n');
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:0 auto;padding:28px;background:#ffffff;border-radius:14px;border:1px solid #e5e7eb">'
+    + '<h2 style="margin:0 0 6px;color:#0f172a;font-size:18px">Permintaan Penarikan</h2>'
+    + '<p style="margin:0 0 18px;color:#6b7280;font-size:13px">Ada permintaan tarik saldo baru dari Wallet ClincooPay yang menunggu konfirmasi Anda.</p>'
+    + '<table style="width:100%;font-size:13px;color:#374151;border-collapse:collapse">'
+    + '<tr><td style="padding:7px 0;color:#9ca3af">ID Penarikan</td><td style="text-align:right;font-weight:600">' + w.id + '</td></tr>'
+    + '<tr><td style="padding:7px 0;color:#9ca3af">Nominal</td><td style="text-align:right;font-weight:600">' + rp(w.amount) + '</td></tr>'
+    + '<tr><td style="padding:7px 0;color:#9ca3af">Biaya penarikan</td><td style="text-align:right;font-weight:600">' + rp(w.fee) + '</td></tr>'
+    + '<tr><td style="padding:7px 0;color:#9ca3af">Diterima pemilik</td><td style="text-align:right;font-weight:600">' + rp(w.amount) + '</td></tr>'
+    + '<tr><td style="padding:7px 0;color:#9ca3af">Tujuan</td><td style="text-align:right;font-weight:600">' + label + ' - ' + w.dest_account + (w.dest_name ? ' (' + w.dest_name + ')' : '') + '</td></tr>'
+    + '</table>'
+    + '<p style="margin:22px 0 10px;font-size:12px;color:#9ca3af">Klik salah satu untuk memproses:</p>'
+    + '<p style="margin:0 0 8px"><a href="' + doneUrl + '" style="display:inline-block;background:#22c55e;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px">Tandai Selesai</a></p>'
+    + '<p style="margin:0"><a href="' + rejUrl + '" style="display:inline-block;background:#ef4444;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px">Tolak Penarikan</a></p>'
+    + '<p style="margin:18px 0 0;font-size:11px;color:#9ca3af">Verifikasi tanda tangan: <a href="' + verifyUrl + '" style="color:#6b7280">cek di sini</a>. Tautan hanya berlaku untuk penarikan ini.</p>'
+    + '</div>';
+  try {
+    const r = await fetch(String(url).replace(/\/$/, '') + '/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Bridge-Key': String(key) },
+      body: JSON.stringify({ to, from_email: 'noreply@clincoo.buzz', from_name: 'ClincooPay', subject, text, html })
+    });
+    const d = await r.json().catch(() => ({}));
+    return { sent: !!(d && (d.success || d.sent || d.id)), id: d.id || d.sent || null };
+  } catch (e) { return { sent: false, reason: 'bridge gagal dihubungi' }; }
 }
 
 const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
@@ -221,6 +294,34 @@ export async function onRequestGet({ request, env }) {
     }
     if (url.searchParams.get('action') === 'google_config') {
       return j({ configured: !!env.GOOGLE_CLIENT_ID, client_id: env.GOOGLE_CLIENT_ID || '' });
+    }
+
+    // ===== SISTEM PENARIKAN: link admin dari email (pola sama dengan fitur Pembayaran Clincoo) =====
+    const wdAction = url.searchParams.get('action');
+    if (wdAction === 'wd_verify' || wdAction === 'wd_confirm') {
+      const wdId = url.searchParams.get('id') || '';
+      const sig = url.searchParams.get('sig') || '';
+      const decision = wdAction === 'wd_confirm' ? (url.searchParams.get('decision') || '') : 'verify';
+      const expect = await wdSig(env.ADMIN_SECRET, wdId + '|' + decision);
+      if (!sig || !expect || sig !== expect) return j({ valid: false, message: 'Tanda tangan TIDAK cocok — jangan proses penarikan ini.' }, 403);
+      const w = wdId ? await db.prepare('SELECT * FROM wallet_withdrawals WHERE id = ?').bind(wdId).first() : null;
+      if (!w) return j({ valid: false, message: 'Penarikan tidak ditemukan.' }, 404);
+      if (wdAction === 'wd_verify') {
+        return j({ valid: true, message: 'Tanda tangan cocok — permintaan asli dari server Wallet ClincooPay.', withdrawal: { id: w.id, address: w.address, amount: w.amount, fee: w.fee, dest_type: w.dest_type, dest_account: w.dest_account, dest_name: w.dest_name || '', status: w.status, created_at: w.created_at } });
+      }
+      if (decision !== 'done' && decision !== 'rejected') return j({ valid: false, message: 'Keputusan tidak valid.' }, 400);
+      if (w.status !== 'pending') return j({ valid: true, already: true, status: w.status, message: 'Penarikan ini sudah diproses.' });
+      const st = decision === 'done' ? 'paid' : 'rejected';
+      await db.prepare("UPDATE wallet_withdrawals SET status = ?, processed_at = datetime('now') WHERE id = ?").bind(st, wdId).run();
+      let refunded = 0;
+      if (st === 'rejected') {
+        refunded = Number(w.amount) + Number(w.fee);
+        await db.prepare('UPDATE wallet_accounts SET balance = balance + ? WHERE address = ?').bind(refunded, w.address).run();
+        await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
+          .bind('WDR-' + wdId, ZERO_ADDR, w.address, refunded, 'Penarikan ditolak admin — saldo dikembalikan').run();
+      }
+      await logActivity(db, w.address, 'tarik', (st === 'paid' ? 'Penarikan selesai' : 'Penarikan ditolak (saldo kembali)') + ' — ' + wdId);
+      return j({ valid: true, success: true, status: st, refunded: refunded, message: st === 'paid' ? 'Penarikan ditandai SELESAI. Terima kasih.' : 'Penarikan DITOLAK — saldo dompet sudah dikembalikan penuh.' });
     }
 
     const address = (url.searchParams.get('addr') || url.searchParams.get('address') || '').toLowerCase();
@@ -934,14 +1035,16 @@ export async function onRequestPost({ request, env }) {
       }
       await db.prepare('UPDATE wallet_accounts SET failed_logins = 0, locked_until = NULL WHERE address = ?').bind(address).run();
 
+      const destName = String(body.dest_name || '').trim().slice(0, 60);
       const wdId = 'WD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-      await db.prepare('INSERT INTO wallet_withdrawals (id, address, amount, fee, dest_type, dest_account, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
-        .bind(wdId, address, amount, fee, destType, destAccount, 'pending').run();
+      await db.prepare('INSERT INTO wallet_withdrawals (id, address, amount, fee, dest_type, dest_account, dest_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(wdId, address, amount, fee, destType, destAccount, destName, 'pending').run();
       await db.prepare('UPDATE wallet_accounts SET balance = balance - ? WHERE address = ?').bind(amount + fee, address).run();
       await db.prepare('INSERT INTO wallet_transactions (txid, from_addr, to_addr, amount, note) VALUES (?, ?, ?, ?, ?)')
         .bind('WDT-' + wdId, address, ZERO_ADDR, amount + fee, 'Tarik saldo → ' + destType.toUpperCase() + ' ' + destAccount.slice(0, 4) + '\u2026').run();
       await logActivity(db, address, 'tarik', 'Tarik Rp ' + amount + ' ke ' + destType.toUpperCase() + ' (+fee ' + fee + ')');
-      return j({ success: true, withdrawal_id: wdId, amount: amount, fee: fee, debited: amount + fee, balance: await getBalance(db, address) });
+      const notify = await wdNotifyAdmin(env, { id: wdId, address: address, amount: amount, fee: fee, dest_type: destType, dest_account: destAccount, dest_name: destName });
+      return j({ success: true, withdrawal_id: wdId, amount: amount, fee: fee, debited: amount + fee, balance: await getBalance(db, address), email_sent: notify && notify.sent });
     }
 
     if (action === 'wd_list') {
@@ -951,7 +1054,7 @@ export async function onRequestPost({ request, env }) {
       const acc = await db.prepare('SELECT secret_hash FROM wallet_accounts WHERE address = ?').bind(address).first();
       if (!acc) return j({ error: 'Akun tidak ditemukan' }, 404);
       if (!secret || (await sha256(secret)) !== acc.secret_hash) return j({ error: 'Kunci dompet tidak cocok' }, 403);
-      const rows = await db.prepare('SELECT id, amount, fee, dest_type, dest_account, status, created_at FROM wallet_withdrawals WHERE address = ? ORDER BY created_at DESC, id DESC LIMIT 20').bind(address).all();
+      const rows = await db.prepare('SELECT id, amount, fee, dest_type, dest_account, dest_name, status, created_at FROM wallet_withdrawals WHERE address = ? ORDER BY created_at DESC, id DESC LIMIT 20').bind(address).all();
       return j({ success: true, withdrawals: rows.results || [] });
     }
 
