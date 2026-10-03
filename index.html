@@ -1165,12 +1165,9 @@
 
         <div class="flow-container" id="topup-result" style="display: none;">
             <div id="topup-qrcode" class="topup-qr-center"></div>
-            <div class="topup-amt-label">Nominal top up</div>
-            <div class="topup-amt-value" id="topup-rp-amount"></div>
-            <div class="topup-amt-label">Total tagihan <span style="font-weight: 400;">(termasuk biaya)</span></div>
             <div class="topup-amt-value" id="topup-rp-total"></div>
+            <div class="topup-amt-label" id="topup-amt-detail"></div>
             <div class="topup-status" id="topup-status-text">Menunggu pembayaran…</div>
-            <button class="btn-submit" onclick="checkTopupStatus(true)" style="margin-top: 20px;">Sudah Bayar? Cek Status</button>
             <button class="btn-submit" onclick="downloadTopupQr()" style="background: #f1f5f9; color: #0f172a; box-shadow: none; margin-top: 8px;">Unduh QR</button>
             <button class="btn-submit" onclick="closeTopup()" style="background: transparent; color: #64748b; box-shadow: none; margin-top: 8px;">Tutup</button>
         </div>
@@ -1687,8 +1684,9 @@
                     currentTopupOrderId = res.order_id;
                     document.getElementById('topup-form').style.display = 'none';
                     document.getElementById('topup-result').style.display = '';
-                    document.getElementById('topup-rp-amount').textContent = 'Rp ' + formatRupiah(res.amount);
                     document.getElementById('topup-rp-total').textContent = 'Rp ' + formatRupiah(res.total_payment);
+                    const detEl = document.getElementById('topup-amt-detail');
+                    if (detEl) detEl.textContent = 'Nominal Rp ' + formatRupiah(res.amount) + ' + biaya Rp ' + formatRupiah(Math.max(0, res.total_payment - res.amount));
                     const statusEl = document.getElementById('topup-status-text');
                     if (statusEl) { statusEl.textContent = 'Menunggu pembayaran…'; statusEl.classList.remove('ok'); }
 
@@ -1701,7 +1699,7 @@
                     }
 
                     stopTopupPoll();
-                    topupPollTimer = setInterval(function () { checkTopupStatus(false); }, 3500);
+                    topupPollTimer = setInterval(function () { checkTopupStatus(); }, 1000);
                 } else {
                     if (errEl) errEl.textContent = res.message || res.error || 'Gagal membuat QRIS.';
                 }
@@ -1722,8 +1720,10 @@
             document.body.appendChild(a); a.click(); a.remove();
         }
 
-        async function checkTopupStatus(manual) {
-            if (!currentTopupOrderId) return;
+        let topupChecking = false;
+        async function checkTopupStatus() {
+            if (!currentTopupOrderId || topupChecking) return;
+            topupChecking = true;
             try {
                 const res = await fetch(API, {
                     method: 'POST',
@@ -1741,11 +1741,8 @@
                     stopTopupPoll();
                     const statusEl = document.getElementById('topup-status-text');
                     if (statusEl) statusEl.textContent = 'QR kedaluwarsa — tutup lalu buat ulang.';
-                } else if (manual && res.success) {
-                    const statusEl = document.getElementById('topup-status-text');
-                    if (statusEl && res.status === 'pending') statusEl.textContent = 'Belum terdeteksi — coba lagi sebentar.';
                 }
-            } catch (e) {}
+            } catch (e) {} finally { topupChecking = false; }
         }
 
         function openTarik() {
